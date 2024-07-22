@@ -4,14 +4,13 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
-import "./DropNFT.sol";
+import "./DropERC1155.sol";
 
 contract NFTMint is Ownable {
     struct DropArgs {
-        string name;
-        string symbol;
+        string uri;
         uint256 maxMints;
-        DropNFT.Edition[] editions;
+        DropERC1155.Edition[] editions;
         bytes32 allowlistMerkleRoot;
         uint256 pricePerMint;
         uint256 perWalletLimit;
@@ -34,12 +33,12 @@ contract NFTMint is Ownable {
 
     address public immutable DROP_NFT_LOGIC;
 
-    mapping(DropNFT => DropInfo) public drops;
+    mapping(DropERC1155 => DropInfo) public drops;
 
-    event DropCreated(DropNFT indexed drop, DropArgs args);
-    event NFTMinted(DropNFT indexed drop, address indexed to, uint256 indexed tokenId);
-    event NFTRevealed(DropNFT indexed drop, uint256 indexed tokenId, uint256 indexed editionId);
-    event DropClaimed(DropNFT indexed drop, address indexed to, uint256 amount);
+    event DropCreated(DropERC1155 indexed drop, DropArgs args);
+    event NFTMinted(DropERC1155 indexed drop, address indexed to, uint256 indexed tokenId);
+    event NFTRevealed(DropERC1155 indexed drop, uint256 indexed tokenId, uint256 indexed editionId);
+    event DropClaimed(DropERC1155 indexed drop, address indexed to, uint256 amount);
 
     constructor(address dropNftLogic, address owner_) Ownable(owner_) {
         DROP_NFT_LOGIC = dropNftLogic;
@@ -47,14 +46,14 @@ contract NFTMint is Ownable {
 
     function createDrop(DropArgs memory args)
         external
-        returns (DropNFT drop)
+        returns (DropERC1155 drop)
     {
         // TODO: Validate inputs
         // - Prevent sum of edition percentChance from exceeding 100
         // - Prevent edition percentChance of 0
 
-        drop = DropNFT(Clones.clone(DROP_NFT_LOGIC));
-        drop.initialize(args.name, args.symbol, address(this), args.editions);
+        drop = DropERC1155(Clones.clone(DROP_NFT_LOGIC));
+        drop.initialize(args.uri, address(this), args.editions);
 
         DropInfo storage dropInfo = drops[drop];
         dropInfo.owner = args.owner;
@@ -68,7 +67,7 @@ contract NFTMint is Ownable {
         emit DropCreated(drop, args);
     }
 
-    function mint(DropNFT drop, uint256 amount, bytes32[] calldata merkleProof) external payable {
+    function mint(DropERC1155 drop, uint256 amount, bytes32[] calldata merkleProof) external payable {
         DropInfo storage dropInfo = drops[drop];
 
         require(dropInfo.totalMinted + amount <= dropInfo.maxMints, "Exceeds max supply");
@@ -94,8 +93,8 @@ contract NFTMint is Ownable {
     }
 
     // TODO: After certain amount of time, allow permissionless reveal?
-    function revealMint(DropNFT drop, uint256[] memory tokenIds, uint256 seed) external onlyOwner {
-        DropNFT.Edition[] memory editions = drop.getAllEditions();
+    function revealMint(DropERC1155 drop, uint256[] memory tokenIds, uint256 seed) external onlyOwner {
+        DropERC1155.Edition[] memory editions = drop.getAllEditions();
 
         for (uint256 i = 0; i < tokenIds.length; i++) {
             uint256 tokenId = tokenIds[i];
@@ -119,7 +118,7 @@ contract NFTMint is Ownable {
         }
     }
 
-    function claimDropPayments(DropNFT drop) external returns (uint256 amount) {
+    function claimDropPayments(DropERC1155 drop) external returns (uint256 amount) {
         DropInfo storage dropInfo = drops[drop];
         require(dropInfo.owner == msg.sender, "Only drop owner can claim mint payments");
 
