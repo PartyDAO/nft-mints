@@ -1,14 +1,14 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/proxy/Clones.sol";
-import "./DropERC1155.sol";
+import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { DropERC1155 } from "./DropERC1155.sol";
 
 contract NFTMint is Ownable {
     struct DropArgs {
-        string uri;
         uint256 maxMints;
         DropERC1155.Edition[] editions;
         bytes32 allowlistMerkleRoot;
@@ -25,15 +25,22 @@ contract NFTMint is Ownable {
         address payable owner;
         address payable feeRecipient;
         uint256 perWalletLimit;
-        uint256 totalMinted;
-        uint256 maxMints;
+        uint256 remainingMints;
         bytes32 allowlistMerkleRoot;
         mapping(address => uint256) mintedPerWallet;
+    }
+
+    struct Order {
+        address to;
+        DropERC1155 drop;
+        uint256 amount;
     }
 
     address public immutable DROP_NFT_LOGIC;
 
     mapping(DropERC1155 => DropInfo) public drops;
+    Order[] public orders;
+    uint256 public nextOrderIdToFill;
 
     event DropCreated(DropERC1155 indexed drop, DropArgs args);
     event NFTMinted(DropERC1155 indexed drop, address indexed to, uint256 indexed tokenId);
@@ -44,20 +51,17 @@ contract NFTMint is Ownable {
         DROP_NFT_LOGIC = dropNftLogic;
     }
 
-    function createDrop(DropArgs memory args)
-        external
-        returns (DropERC1155 drop)
-    {
+    function createDrop(DropArgs memory args) external returns (DropERC1155 drop) {
         // TODO: Validate inputs
         // - Prevent sum of edition percentChance from exceeding 100
         // - Prevent edition percentChance of 0
 
         drop = DropERC1155(Clones.clone(DROP_NFT_LOGIC));
-        drop.initialize(args.uri, address(this), args.editions);
+        drop.initialize(address(this), args.editions);
 
         DropInfo storage dropInfo = drops[drop];
         dropInfo.owner = args.owner;
-        dropInfo.maxMints = args.maxMints;
+        dropInfo.remainingMints = args.maxMints;
         dropInfo.pricePerMint = args.pricePerMint;
         dropInfo.feePerMint = args.feePerMint;
         dropInfo.feeRecipient = args.feeRecipient;
@@ -70,62 +74,59 @@ contract NFTMint is Ownable {
     function mint(DropERC1155 drop, uint256 amount, bytes32[] calldata merkleProof) external payable {
         DropInfo storage dropInfo = drops[drop];
 
-        require(dropInfo.totalMinted + amount <= dropInfo.maxMints, "Exceeds max supply");
-        require(dropInfo.mintedPerWallet[msg.sender] + amount <= dropInfo.perWalletLimit, "Exceeds wallet limit");
-        require(msg.value >= (dropInfo.pricePerMint + dropInfo.feePerMint) * amount, "Insufficient payment");
+        dropInfo.remainingMints -= amount;
+
+        if (drops[drop].mintedPerWallet[msg.sender] + amount > dropInfo.perWalletLimit) {
+            revert("Exceeds wallet limit");
+        }
+        drops[drop].mintedPerWallet[msg.sender] += amount;
+
+        require(msg.value == (dropInfo.pricePerMint + dropInfo.feePerMint) * amount, "Incorrect payment amount");
 
         if (dropInfo.allowlistMerkleRoot != bytes32(0)) {
             bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
             require(MerkleProof.verify(merkleProof, dropInfo.allowlistMerkleRoot, leaf), "Invalid merkle proof");
         }
 
-        for (uint256 i = 0; i < amount; i++) {
-            uint256 tokenId = dropInfo.totalMinted + i;
-            drop.mint(msg.sender, tokenId);
-            emit NFTMinted(drop, msg.sender, tokenId);
-        }
-
-        drops[drop].totalMinted += amount;
-        drops[drop].mintedPerWallet[msg.sender] += amount;
-
-        // Transfer fee to fee recipient
-        dropInfo.feeRecipient.transfer(dropInfo.feePerMint * amount);
+        orders.push(Order({ to: msg.sender, drop: drop, amount: amount }));
     }
 
-    // TODO: After certain amount of time, allow permissionless reveal?
-    function revealMint(DropERC1155 drop, uint256[] memory tokenIds, uint256 seed) external onlyOwner {
-        DropERC1155.Edition[] memory editions = drop.getAllEditions();
+    function fillOrders(uint256 numOrdersToFill) external onlyOwner {
+        uint256 nonce = 0;
+        uint256 nextOrderIdToFill_ = nextOrderIdToFill;
+        uint256 finalNextOrderToFill =
+            numOrdersToFill == 0 ? orders.length : Math.min(orders.length, nextOrderIdToFill_ + numOrdersToFill);
 
-        for (uint256 i = 0; i < tokenIds.length; i++) {
-            uint256 tokenId = tokenIds[i];
-            // Prevent revealing the same tokenId multiple times
-            require(drop.tokenIdToEditionId(tokenId) == 0, "TokenId already revealed");
+        while (nextOrderIdToFill_ < finalNextOrderToFill) {
+            Order storage order = orders[nextOrderIdToFill_];
+            DropERC1155.Edition[] memory editions = order.drop.getAllEditions();
 
-            uint256 selectedEditionId = 0;
-            uint256 cumulativeChance = 0;
-            uint256 roll = uint256(keccak256(abi.encodePacked(tokenId, seed, block.timestamp))) % 100;
-            for (uint256 j = 0; j < editions.length; j++) {
-                cumulativeChance += editions[j].percentChance;
-                if (roll < cumulativeChance) {
-                    selectedEditionId = j;
+            uint256[] memory ids = new uint256[](editions.length);
+            uint256[] memory amounts = new uint256[](editions.length);
 
-                    drop.assignEdition(tokenId, j);
+            for (uint256 i = 0; i < editions.length; i++) {
+                ids[i] = i + 1;
+            }
 
-                    emit NFTRevealed(drop, tokenId, selectedEditionId);
-                    break;
+            for (uint256 i = 0; i < order.amount; i++) {
+                uint256 roll = uint256(keccak256(abi.encodePacked(nonce++, blockhash(block.number - 1)))) % 100;
+
+                uint256 cumulativeChance = 0;
+                for (uint256 j = 0; j < editions.length; j++) {
+                    cumulativeChance += editions[j].percentChance;
+                    if (roll < cumulativeChance) {
+                        amounts[j]++;
+                        break;
+                    }
                 }
             }
+
+            order.drop.mintBatch(order.to, ids, amounts);
+            delete orders[nextOrderIdToFill_];
+            nextOrderIdToFill_++;
         }
-    }
 
-    function claimDropPayments(DropERC1155 drop) external returns (uint256 amount) {
-        DropInfo storage dropInfo = drops[drop];
-        require(dropInfo.owner == msg.sender, "Only drop owner can claim mint payments");
-
-        amount = dropInfo.pricePerMint * dropInfo.totalMinted;
-        dropInfo.owner.transfer(amount);
-
-        emit DropClaimed(drop, dropInfo.owner, amount);
+        nextOrderIdToFill = nextOrderIdToFill_;
     }
 
     function VERSION() external pure returns (string memory) {

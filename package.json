@@ -9,7 +9,8 @@
   "dependencies": {
     "@openzeppelin/contracts": "^5.0.1",
     "@openzeppelin/contracts-upgradeable": "^5.0.2",
-    "@partydao/solidity-deploy": "^1.1.2"
+    "@partydao/solidity-deploy": "^1.1.2",
+    "solady": "^0.0.227"
   },
   "devDependencies": {
     "forge-std": "github:foundry-rs/forge-std#v1.8.1",
