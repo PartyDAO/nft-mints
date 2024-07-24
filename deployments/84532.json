@@ -1,8 +1,15 @@
 {
   "contracts": {
-    "NFTMint": { "deploys": [], "constructorArgs": ["PartyDAO"] }
+    "NFTMint": {
+      "deploys": [
+        {
+          "deployedArgs": "0x0000000000000000000000000e63d6f414b40bafca676810ef1abf05ecc8e459",
+          "version": "1.0.0",
+          "address": "0x92E8B82a51cc266E39B5075436CB74FA2FCf280e"
+        }
+      ],
+      "constructorArgs": ["PartyDAO"]
+    }
   },
-  "constants": {
-    "PartyDAO": "0x0e63D6f414b40BaFCa676810ef1aBf05ECc8E459"
-  }
+  "constants": { "PartyDAO": "0x0e63D6f414b40BaFCa676810ef1aBf05ECc8E459" }
 }
