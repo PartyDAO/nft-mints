@@ -1,0 +1,8 @@
+{
+  "contracts": {
+    "NFTMint": { "deploys": [], "constructorArgs": ["PartyDAO"] }
+  },
+  "constants": {
+    "PartyDAO": "0x0e63D6f414b40BaFCa676810ef1aBf05ECc8E459"
+  }
+}
