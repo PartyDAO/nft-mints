@@ -4,8 +4,9 @@ pragma solidity ^0.8.0;
 import { TestBase } from "./util/TestBase.t.sol";
 import { DropERC1155 } from "src/DropERC1155.sol";
 import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
+import { LintJSON } from "./util/LintJSON.t.sol";
 
-contract DropERC1155Test is TestBase {
+contract DropERC1155Test is TestBase, LintJSON {
     DropERC1155 token;
 
     function setUp() external {
@@ -41,12 +42,11 @@ contract DropERC1155Test is TestBase {
         assertEq(royaltyReceiver, address(this));
         assertEq(royalties, 0.01 ether);
 
-        // TODO: lint
-        token.contractURI();
+        _lintJSON(token.contractURI());
     }
 
-    function test_uri() external {
-        // TODO: lint
-        token.uri(1);
+    function test_uri_lintJSON() external {
+        _lintJSON(token.uri(1));
+        _lintJSON(token.uri(2));
     }
 }
