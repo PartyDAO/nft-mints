@@ -38,15 +38,24 @@ contract DropERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
     function initialize(address owner_, Edition[] memory editions_) public initializer {
         __Ownable_init(owner_);
 
+        uint256 totalPercentChance = 0;
         for (uint256 i = 0; i < editions_.length; i++) {
+            editions.push();
             editions[i].name = editions_[i].name;
             editions[i].imageURI = editions_[i].imageURI;
-            editions[i].percentChance = editions_[i].percentChance;
+            totalPercentChance += editions[i].percentChance = editions_[i].percentChance;
+
+            if (editions_[i].percentChance == 0) {
+                revert("DropERC1155: percent chance must be greater than 0");
+            }
 
             for (uint256 j = 0; j < editions_[i].attributes.length; j++) {
-                editions[i].attributes[j].traitType = editions_[i].attributes[j].traitType;
-                editions[i].attributes[j].value = editions_[i].attributes[j].value;
+                editions[i].attributes.push(editions_[i].attributes[j]);
             }
+        }
+
+        if (totalPercentChance != 100) {
+            revert("DropERC1155: total percent chance must equal 100");
         }
     }
 

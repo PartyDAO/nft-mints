@@ -47,15 +47,11 @@ contract NFTMint is Ownable {
     event NFTRevealed(DropERC1155 indexed drop, uint256 indexed tokenId, uint256 indexed editionId);
     event DropClaimed(DropERC1155 indexed drop, address indexed to, uint256 amount);
 
-    constructor(address dropNftLogic, address owner_) Ownable(owner_) {
-        DROP_NFT_LOGIC = dropNftLogic;
+    constructor(address owner_) Ownable(owner_) {
+        DROP_NFT_LOGIC = address(new DropERC1155(address(this)));
     }
 
     function createDrop(DropArgs memory args) external returns (DropERC1155 drop) {
-        // TODO: Validate inputs
-        // - Prevent sum of edition percentChance from exceeding 100
-        // - Prevent edition percentChance of 0
-
         drop = DropERC1155(Clones.clone(DROP_NFT_LOGIC));
         drop.initialize(address(this), args.editions);
 
@@ -72,23 +68,42 @@ contract NFTMint is Ownable {
     }
 
     function mint(DropERC1155 drop, uint256 amount, bytes32[] calldata merkleProof) external payable {
+        if (amount > 100) {
+            revert("Exceeds max mint amount per tx");
+        }
+
         DropInfo storage dropInfo = drops[drop];
 
-        dropInfo.remainingMints -= amount;
+        uint256 modifiedAmount = Math.min(amount, dropInfo.remainingMints);
+        dropInfo.remainingMints -= modifiedAmount;
+        uint256 totalCost = (dropInfo.pricePerMint + dropInfo.feePerMint) * modifiedAmount;
 
-        if (drops[drop].mintedPerWallet[msg.sender] + amount > dropInfo.perWalletLimit) {
+        if (drops[drop].mintedPerWallet[msg.sender] + modifiedAmount > dropInfo.perWalletLimit) {
             revert("Exceeds wallet limit");
         }
-        drops[drop].mintedPerWallet[msg.sender] += amount;
+        drops[drop].mintedPerWallet[msg.sender] += modifiedAmount;
 
-        require(msg.value == (dropInfo.pricePerMint + dropInfo.feePerMint) * amount, "Incorrect payment amount");
+        require(msg.value >= totalCost, "Incorrect payment amount");
 
         if (dropInfo.allowlistMerkleRoot != bytes32(0)) {
             bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
             require(MerkleProof.verify(merkleProof, dropInfo.allowlistMerkleRoot, leaf), "Invalid merkle proof");
         }
 
-        orders.push(Order({ to: msg.sender, drop: drop, amount: amount }));
+        orders.push(Order({ to: msg.sender, drop: drop, amount: modifiedAmount }));
+
+        (bool feeSuccess,) = dropInfo.feeRecipient.call{ value: dropInfo.feePerMint * modifiedAmount, gas: 100_000 }("");
+        (bool mintProceedsSuccess,) =
+            dropInfo.owner.call{ value: dropInfo.pricePerMint * modifiedAmount, gas: 100_000 }("");
+
+        bool refundSuccess = true;
+        if (msg.value > totalCost) {
+            (refundSuccess,) = payable(msg.sender).call{ value: msg.value - totalCost, gas: 100_000 }("");
+        }
+
+        if (!feeSuccess || !mintProceedsSuccess || !refundSuccess) {
+            revert("Failed to transfer funds");
+        }
     }
 
     function fillOrders(uint256 numOrdersToFill) external onlyOwner {
@@ -121,7 +136,8 @@ contract NFTMint is Ownable {
                 }
             }
 
-            order.drop.mintBatch(order.to, ids, amounts);
+            // If the mint fails with 500_000 gas, the order is still marked as filled.
+            try order.drop.mintBatch{ gas: 500_000 }(order.to, ids, amounts) { } catch { }
             delete orders[nextOrderIdToFill_];
             nextOrderIdToFill_++;
         }
