@@ -1,0 +1,69 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      network:
+        type: choice
+        description: Network
+        options:
+          - mainnet
+          - sepolia
+          - base
+          - base-sepolia
+      contract:
+        description: Contract to deploy
+        required: true
+
+jobs:
+  deploy-contract:
+    name: Deploy Contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: "Install Bun"
+        uses: "oven-sh/setup-bun@v1"
+
+      - name: "Install the Node.js dependencies"
+        run: "bun install"
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Set RPC URL for mainnet
+        if: ${{ github.event.inputs.network == 'mainnet' }}
+        run: echo "RPC_URL=${{ secrets.MAINNET_RPC_URL }}" >> $GITHUB_ENV
+
+      - name: Set RPC URL for sepolia
+        if: ${{ github.event.inputs.network == 'sepolia' }}
+        run: echo "RPC_URL=${{ secrets.SEPOLIA_RPC_URL }}" >> $GITHUB_ENV
+
+      - name: Set RPC URL for base
+        if: ${{ github.event.inputs.network == 'base' }}
+        run: echo "RPC_URL=${{ secrets.BASE_RPC_URL }}" >> $GITHUB_ENV
+
+      - name: Set RPC URL for base-sepolia
+        if: ${{ github.event.inputs.network == 'base-sepolia' }}
+        run: echo "RPC_URL=${{ secrets.BASE_SEPOLIA_RPC_URL }}" >> $GITHUB_ENV
+
+      - name: Run Deploy
+        run: |
+          npx solidity-deploy ${{ github.event.inputs.contract }} --rpc ${{ env.RPC_URL }} --pk ${{ secrets.private_key }} --explorer-api-key ${{ secrets.BASESCAN_API_KEY }}
+        env:
+          NETWORK: ${{ github.event.inputs.network }}
+          CONTRACT: ${{ github.event.inputs.contract }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          RPC_URL: ${{ env.RPC_URL }}
+          BASESCAN_API_KEY: ${{ secrets.BASESCAN_API_KEY }}
+
+      - name: Prettier Fix
+        run: bun run prettier:write
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'GitHub Actions Bot'
+          git config --global user.email '<>'
+          git commit -a -m "CI deployment of ${{ github.event.inputs.contract }}"
+          git push
