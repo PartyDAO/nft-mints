@@ -6,7 +6,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { ERC2981Upgradeable } from "@openzeppelin/contracts-upgradeable/token/common/ERC2981Upgradeable.sol";
 import { LibString } from "solady/src/utils/LibString.sol";
 
-contract DropERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeable {
+contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeable {
     error Unauthorized();
 
     /// @notice Contract level name for `contractURI`
@@ -46,7 +46,7 @@ contract DropERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
             totalPercentChance += editions[i].percentChance = editions_[i].percentChance;
 
             if (editions_[i].percentChance == 0) {
-                revert("DropERC1155: percent chance must be greater than 0");
+                revert("MintERC1155: percent chance must be greater than 0");
             }
 
             for (uint256 j = 0; j < editions_[i].attributes.length; j++) {
@@ -55,7 +55,7 @@ contract DropERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
         }
 
         if (totalPercentChance != 100) {
-            revert("DropERC1155: total percent chance must equal 100");
+            revert("MintERC1155: total percent chance must equal 100");
         }
     }
 
@@ -71,7 +71,7 @@ contract DropERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
             revert Unauthorized();
         }
         if (ids.length != amounts.length) {
-            revert("DropERC1155: ids and amounts length mismatch");
+            revert("MintERC1155: ids and amounts length mismatch");
         }
         _mintBatch(to, ids, amounts, "");
     }
