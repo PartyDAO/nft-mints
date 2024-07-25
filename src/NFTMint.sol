@@ -9,7 +9,7 @@ import { MintERC1155 } from "./MintERC1155.sol";
 
 contract NFTMint is Ownable {
     event MintCreated(MintERC1155 indexed mint, MintArgs args);
-    event OrderPlaced(MintERC1155 indexed mint, address indexed to, uint256 amount);
+    event OrderPlaced(MintERC1155 indexed mint, address indexed to, uint256 amount, string comment);
     event OrderFilled(MintERC1155 indexed mint, address indexed to, uint256 amount, uint256[] amounts);
 
     struct MintArgs {
@@ -67,7 +67,15 @@ contract NFTMint is Ownable {
         return newMint;
     }
 
-    function order(MintERC1155 mint, uint256 amount, bytes32[] calldata merkleProof) external payable {
+    function order(
+        MintERC1155 mint,
+        uint256 amount,
+        string memory comment,
+        bytes32[] calldata merkleProof
+    )
+        external
+        payable
+    {
         if (amount > 100) {
             revert("Exceeds max order amount per tx");
         }
@@ -105,7 +113,7 @@ contract NFTMint is Ownable {
             revert("Failed to transfer funds");
         }
 
-        emit OrderPlaced(mint, msg.sender, modifiedAmount);
+        emit OrderPlaced(mint, msg.sender, modifiedAmount, comment);
     }
 
     function fillOrders(uint256 numOrdersToFill) external onlyOwner {
@@ -150,6 +158,6 @@ contract NFTMint is Ownable {
     }
 
     function VERSION() external pure returns (string memory) {
-        return "0.1.1";
+        return "0.1.2";
     }
 }

@@ -44,7 +44,7 @@ contract NFTMintTest is TestBase {
         return nftMint.createMint(mintArgs);
     }
 
-    event OrderPlaced(MintERC1155 indexed mint, address indexed to, uint256 amount);
+    event OrderPlaced(MintERC1155 indexed mint, address indexed to, uint256 amount, string comment);
 
     function test_order() public returns (MintERC1155, address) {
         MintERC1155 mint = test_createMint();
@@ -53,9 +53,9 @@ contract NFTMintTest is TestBase {
         vm.deal(minter, 10 ether);
         vm.prank(minter);
         vm.expectEmit(true, true, true, true);
-        emit OrderPlaced(mint, minter, 100);
+        emit OrderPlaced(mint, minter, 100, "Fist order!");
 
-        nftMint.order{ value: 1.1 ether }(mint, 100, new bytes32[](0));
+        nftMint.order{ value: 1.1 ether }(mint, 100, "Fist order!", new bytes32[](0));
 
         return (mint, minter);
     }
