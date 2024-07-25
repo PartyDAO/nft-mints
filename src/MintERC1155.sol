@@ -26,7 +26,7 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
         Attribute[] attributes;
     }
 
-    address immutable MINTER;
+    address public immutable MINTER;
 
     /// @notice Editions for this contract
     Edition[] public editions;
