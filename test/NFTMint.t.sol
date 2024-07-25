@@ -44,20 +44,31 @@ contract NFTMintTest is TestBase {
         return nftMint.createMint(mintArgs);
     }
 
-    function test_mint() public {
+    event OrderPlaced(MintERC1155 indexed mint, address indexed to, uint256 amount);
+
+    function test_order() public returns (MintERC1155, address) {
         MintERC1155 mint = test_createMint();
         address minter = _randomAddress();
 
         vm.deal(minter, 10 ether);
         vm.prank(minter);
+        vm.expectEmit(true, true, true, true);
+        emit OrderPlaced(mint, minter, 100);
+
         nftMint.order{ value: 1.1 ether }(mint, 100, new bytes32[](0));
 
-        vm.roll(block.number + 1);
-        nftMint.fillOrders(0);
+        return (mint, minter);
     }
 
+    event OrderFilled(MintERC1155 indexed mint, address indexed to, uint256 amount, uint256[] amounts);
+
     function test_fillOrders() external {
-        test_mint();
+        vm.roll(block.number + 1);
+        (MintERC1155 mint, address minter) = test_order();
+
+        // Not checking data because token amounts is inherently random
+        vm.expectEmit(true, true, true, false);
+        emit OrderFilled(mint, minter, 100, new uint256[](0));
         nftMint.fillOrders(0);
     }
 
