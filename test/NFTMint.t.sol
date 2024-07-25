@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import { TestBase } from "./util/TestBase.t.sol";
 import { NFTMint } from "src/NFTMint.sol";
-import { DropERC1155 } from "src/DropERC1155.sol";
+import { MintERC1155 } from "src/MintERC1155.sol";
 
 contract NFTMintTest is TestBase {
     NFTMint nftMint;
@@ -12,25 +12,25 @@ contract NFTMintTest is TestBase {
         nftMint = new NFTMint(address(this));
     }
 
-    function test_createDrop() public returns (DropERC1155) {
-        DropERC1155.Attribute[] memory attributes = new DropERC1155.Attribute[](1);
-        attributes[0] = DropERC1155.Attribute({ traitType: "traitType", value: "value" });
+    function test_createMint() public returns (MintERC1155) {
+        MintERC1155.Attribute[] memory attributes = new MintERC1155.Attribute[](1);
+        attributes[0] = MintERC1155.Attribute({ traitType: "traitType", value: "value" });
 
-        DropERC1155.Edition[] memory editions = new DropERC1155.Edition[](2);
-        editions[0] = DropERC1155.Edition({
+        MintERC1155.Edition[] memory editions = new MintERC1155.Edition[](2);
+        editions[0] = MintERC1155.Edition({
             name: "Edition 1",
             imageURI: "https://example.com/image1.png",
             percentChance: 80,
             attributes: attributes
         });
-        editions[1] = DropERC1155.Edition({
+        editions[1] = MintERC1155.Edition({
             name: "Edition 2",
             imageURI: "https://example.com/image2.png",
             percentChance: 20,
-            attributes: new DropERC1155.Attribute[](0)
+            attributes: new MintERC1155.Attribute[](0)
         });
 
-        NFTMint.DropArgs memory dropArgs = NFTMint.DropArgs({
+        NFTMint.MintArgs memory mintArgs = NFTMint.MintArgs({
             maxMints: 100,
             editions: editions,
             allowlistMerkleRoot: bytes32(0),
@@ -41,16 +41,16 @@ contract NFTMintTest is TestBase {
             feeRecipient: payable(address(this))
         });
 
-        return nftMint.createDrop(dropArgs);
+        return nftMint.createMint(mintArgs);
     }
 
     function test_mint() public {
-        DropERC1155 drop = test_createDrop();
+        MintERC1155 mint = test_createMint();
         address minter = _randomAddress();
 
         vm.deal(minter, 10 ether);
         vm.prank(minter);
-        nftMint.mint{ value: 1.1 ether }(drop, 100, new bytes32[](0));
+        nftMint.order{ value: 1.1 ether }(mint, 100, new bytes32[](0));
 
         vm.roll(block.number + 1);
         nftMint.fillOrders(0);
