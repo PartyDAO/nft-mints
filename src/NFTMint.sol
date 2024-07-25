@@ -8,6 +8,12 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { MintERC1155 } from "./MintERC1155.sol";
 
 contract NFTMint is Ownable {
+    error NFTMint_ExceedsMaxOrderAmountPerTx();
+    error NFTMint_ExceedsWalletLimit();
+    error NFTMint_InsufficientValue();
+    error NFTMint_InvalidMerkleProof();
+    error NFTMint_FailedToTransferFunds();
+
     event MintCreated(MintERC1155 indexed mint, MintArgs args);
     event OrderPlaced(MintERC1155 indexed mint, address indexed to, uint256 amount, string comment);
     event OrderFilled(MintERC1155 indexed mint, address indexed to, uint256 amount, uint256[] amounts);
@@ -77,7 +83,7 @@ contract NFTMint is Ownable {
         payable
     {
         if (amount > 100) {
-            revert("Exceeds max order amount per tx");
+            revert NFTMint_ExceedsMaxOrderAmountPerTx();
         }
 
         MintInfo storage mintInfo = mints[mint];
@@ -87,15 +93,19 @@ contract NFTMint is Ownable {
         uint256 totalCost = (mintInfo.pricePerMint + mintInfo.feePerMint) * modifiedAmount;
 
         if (mints[mint].mintedPerWallet[msg.sender] + modifiedAmount > mintInfo.perWalletLimit) {
-            revert("Exceeds wallet limit");
+            revert NFTMint_ExceedsWalletLimit();
         }
         mints[mint].mintedPerWallet[msg.sender] += modifiedAmount;
 
-        require(msg.value >= totalCost, "Incorrect payment amount");
+        if (msg.value < totalCost) {
+            revert NFTMint_InsufficientValue();
+        }
 
         if (mintInfo.allowlistMerkleRoot != bytes32(0)) {
             bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
-            require(MerkleProof.verify(merkleProof, mintInfo.allowlistMerkleRoot, leaf), "Invalid merkle proof");
+            if (!MerkleProof.verify(merkleProof, mintInfo.allowlistMerkleRoot, leaf)) {
+                revert NFTMint_InvalidMerkleProof();
+            }
         }
 
         orders.push(Order({ to: msg.sender, mint: mint, amount: modifiedAmount }));
@@ -110,7 +120,7 @@ contract NFTMint is Ownable {
         }
 
         if (!feeSuccess || !mintProceedsSuccess || !refundSuccess) {
-            revert("Failed to transfer funds");
+            revert NFTMint_FailedToTransferFunds();
         }
 
         emit OrderPlaced(mint, msg.sender, modifiedAmount, comment);
