@@ -1,6 +1,7 @@
 import fs from "fs";
 
-const jsonString = fs.readFileSync("./out/lint-json.json", "utf8");
+const filePath = process.argv[2];
+const jsonString = fs.readFileSync(filePath, "utf8");
 try {
   JSON.parse(jsonString.substring(27));
 } catch {

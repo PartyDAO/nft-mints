@@ -8,6 +8,10 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { MintERC1155 } from "./MintERC1155.sol";
 
 contract NFTMint is Ownable {
+    event MintCreated(MintERC1155 indexed mint, MintArgs args);
+    event OrderPlaced(MintERC1155 indexed mint, address indexed to, uint256 amount);
+    event OrderFilled(MintERC1155 indexed mint, address indexed to, uint256 amount, uint256[] amounts);
+
     struct MintArgs {
         uint256 maxMints;
         MintERC1155.Edition[] editions;
@@ -31,8 +35,8 @@ contract NFTMint is Ownable {
     }
 
     struct Order {
-        address to;
         MintERC1155 mint;
+        address to;
         uint256 amount;
     }
 
@@ -41,11 +45,6 @@ contract NFTMint is Ownable {
     mapping(MintERC1155 => MintInfo) public mints;
     Order[] public orders;
     uint256 public nextOrderIdToFill;
-
-    event MintCreated(MintERC1155 indexed mint, MintArgs args);
-    event NFTMinted(MintERC1155 indexed mint, address indexed to, uint256 indexed tokenId);
-    event NFTRevealed(MintERC1155 indexed mint, uint256 indexed tokenId, uint256 indexed editionId);
-    event MintClaimed(MintERC1155 indexed mint, address indexed to, uint256 amount);
 
     constructor(address owner_) Ownable(owner_) {
         MINT_NFT_LOGIC = address(new MintERC1155(address(this)));
@@ -105,6 +104,8 @@ contract NFTMint is Ownable {
         if (!feeSuccess || !mintProceedsSuccess || !refundSuccess) {
             revert("Failed to transfer funds");
         }
+
+        emit OrderPlaced(mint, msg.sender, modifiedAmount);
     }
 
     function fillOrders(uint256 numOrdersToFill) external onlyOwner {
@@ -137,6 +138,8 @@ contract NFTMint is Ownable {
                 }
             }
 
+            emit OrderFilled(currentOrder.mint, currentOrder.to, currentOrder.amount, amounts);
+
             // If the mint fails with 500_000 gas, the order is still marked as filled.
             try currentOrder.mint.mintBatch{ gas: 500_000 }(currentOrder.to, ids, amounts) { } catch { }
             delete orders[nextOrderIdToFill_];
@@ -147,6 +150,6 @@ contract NFTMint is Ownable {
     }
 
     function VERSION() external pure returns (string memory) {
-        return "0.1.0";
+        return "0.1.1";
     }
 }

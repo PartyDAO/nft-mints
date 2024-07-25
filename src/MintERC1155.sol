@@ -9,10 +9,7 @@ import { LibString } from "solady/src/utils/LibString.sol";
 contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeable {
     error Unauthorized();
 
-    /// @notice Contract level name for `contractURI`
-    string public name;
-    /// @notice Contract level image for `contractURI`
-    string public imageURI;
+    event ContractURIUpdated();
 
     struct Attribute {
         string traitType;
@@ -26,9 +23,14 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
         Attribute[] attributes;
     }
 
-    Edition[] public editions;
-
     address immutable MINTER;
+
+    /// @notice Editions for this contract
+    Edition[] public editions;
+    /// @notice Contract level name for `contractURI`
+    string public name;
+    /// @notice Contract level image for `contractURI`
+    string public imageURI;
 
     constructor(address minter) {
         _disableInitializers();
@@ -148,6 +150,8 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
         _setDefaultRoyalty(royaltyReceiver, royaltyAmountBps);
         name = name_;
         imageURI = imageURI_;
+
+        emit ContractURIUpdated();
     }
 
     function contractURI() external view returns (string memory) {
@@ -158,6 +162,6 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
     }
 
     function VERSION() external pure returns (string memory) {
-        return "0.1.0";
+        return "0.1.1";
     }
 }
