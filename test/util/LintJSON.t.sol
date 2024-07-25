@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.25;
 
-import "forge-std/src/Test.sol";
+import { Test } from "forge-std/src/Test.sol";
 
 contract LintJSON is Test {
     function _lintJSON(string memory json) internal {
