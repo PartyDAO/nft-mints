@@ -92,14 +92,14 @@ contract NFTMint is Ownable {
         mintInfo.remainingMints -= modifiedAmount;
         uint256 totalCost = (mintInfo.pricePerMint + mintInfo.feePerMint) * modifiedAmount;
 
+        if (msg.value < totalCost) {
+            revert NFTMint_InsufficientValue();
+        }
+
         if (mints[mint].mintedPerWallet[msg.sender] + modifiedAmount > mintInfo.perWalletLimit) {
             revert NFTMint_ExceedsWalletLimit();
         }
         mints[mint].mintedPerWallet[msg.sender] += modifiedAmount;
-
-        if (msg.value < totalCost) {
-            revert NFTMint_InsufficientValue();
-        }
 
         if (mintInfo.allowlistMerkleRoot != bytes32(0)) {
             bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
@@ -113,7 +113,6 @@ contract NFTMint is Ownable {
         (bool feeSuccess,) = mintInfo.feeRecipient.call{ value: mintInfo.feePerMint * modifiedAmount, gas: 100_000 }("");
         (bool mintProceedsSuccess,) =
             mintInfo.owner.call{ value: mintInfo.pricePerMint * modifiedAmount, gas: 100_000 }("");
-
         bool refundSuccess = true;
         if (msg.value > totalCost) {
             (refundSuccess,) = payable(msg.sender).call{ value: msg.value - totalCost, gas: 100_000 }("");

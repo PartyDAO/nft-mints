@@ -31,11 +31,11 @@ contract NFTMintTest is TestBase {
         });
 
         NFTMint.MintArgs memory mintArgs = NFTMint.MintArgs({
-            maxMints: 100,
+            maxMints: 110,
             editions: editions,
             allowlistMerkleRoot: bytes32(0),
             pricePerMint: 0.01 ether,
-            perWalletLimit: 100,
+            perWalletLimit: 105,
             feePerMint: 0.001 ether,
             owner: payable(address(this)),
             feeRecipient: payable(address(this))
@@ -58,6 +58,18 @@ contract NFTMintTest is TestBase {
         nftMint.order{ value: 1.1 ether }(mint, 100, "Fist order!", new bytes32[](0));
 
         return (mint, minter);
+    }
+
+    function test_order_order101_exceedsMaxOrderAmountPerTx() external {
+        MintERC1155 mint = test_createMint();
+
+        address minter = _randomAddress();
+
+        vm.deal(minter, 10 ether);
+        vm.prank(minter);
+
+        vm.expectRevert(NFTMint.NFTMint_ExceedsMaxOrderAmountPerTx.selector);
+        nftMint.order{ value: 1.1 ether }(mint, 101, new bytes32[](0));
     }
 
     event OrderFilled(MintERC1155 indexed mint, address indexed to, uint256 amount, uint256[] amounts);
