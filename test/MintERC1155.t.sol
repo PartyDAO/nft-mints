@@ -50,6 +50,53 @@ contract MintERC1155Test is TestBase, LintJSON {
         _lintJSON(token.contractURI());
     }
 
+    function test_initialize_percentChance0() external {
+        MintERC1155.Edition[] memory editions = new MintERC1155.Edition[](1);
+        editions[0] = MintERC1155.Edition({
+            name: "Edition 1",
+            imageURI: "https://example.com/image1.png",
+            percentChance: 0,
+            attributes: new MintERC1155.Attribute[](0)
+        });
+
+        MintERC1155 impl = new MintERC1155(address(this));
+        MintERC1155 newToken = MintERC1155(Clones.clone(address(impl)));
+
+        vm.expectRevert(MintERC1155.MintERC1155_PercentChance0.selector);
+        newToken.initialize(address(this), editions);
+    }
+
+    function test_initialize_totalPercentChanceNot100() external {
+        MintERC1155.Edition[] memory editions = new MintERC1155.Edition[](1);
+        editions[0] = MintERC1155.Edition({
+            name: "Edition 1",
+            imageURI: "https://example.com/image1.png",
+            percentChance: 95,
+            attributes: new MintERC1155.Attribute[](0)
+        });
+
+        MintERC1155 impl = new MintERC1155(address(this));
+        MintERC1155 newToken = MintERC1155(Clones.clone(address(impl)));
+
+        vm.expectRevert(MintERC1155.MintERC1155_TotalPercentChanceNot100.selector);
+        newToken.initialize(address(this), editions);
+    }
+
+    function test_mintBatch_unauthorized() external {
+        vm.expectRevert(MintERC1155.MintERC1155_Unauthorized.selector);
+        vm.prank(_randomAddress());
+        token.mintBatch(address(this), new uint256[](0), new uint256[](0));
+    }
+
+    function test_mintBatch_arityMismatch() external {
+        vm.expectRevert(MintERC1155.MintERC1155_ArityMismatch.selector);
+        token.mintBatch(address(this), new uint256[](1), new uint256[](0));
+    }
+
+    function test_totalEditions() external {
+        assertEq(token.totalEditions(), 2);
+    }
+
     function test_uri_lintJSON() external {
         _lintJSON(token.uri(1));
         _lintJSON(token.uri(2));

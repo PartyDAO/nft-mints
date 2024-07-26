@@ -64,13 +64,6 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
         }
     }
 
-    function mint(address to, uint256 id) external {
-        if (msg.sender != MINTER) {
-            revert MintERC1155_Unauthorized();
-        }
-        _mint(to, id, 1, "");
-    }
-
     function mintBatch(address to, uint256[] memory ids, uint256[] memory amounts) external {
         if (msg.sender != MINTER) {
             revert MintERC1155_Unauthorized();

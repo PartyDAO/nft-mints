@@ -72,6 +72,44 @@ contract NFTMintTest is TestBase {
         nftMint.order{ value: 1.1 ether }(mint, 101, new bytes32[](0));
     }
 
+    function test_order_exceedsWalletLimit() external {
+        MintERC1155 mint = test_createMint();
+
+        address minter = _randomAddress();
+
+        vm.deal(minter, 10 ether);
+        vm.startPrank(minter);
+
+        nftMint.order{ value: 1.1 ether }(mint, 100, new bytes32[](0));
+        vm.expectRevert(NFTMint.NFTMint_ExceedsWalletLimit.selector);
+        nftMint.order{ value: 0.066 ether }(mint, 6, new bytes32[](0));
+    }
+
+    function test_order_insufficientValue() external {
+        MintERC1155 mint = test_createMint();
+
+        address minter = _randomAddress();
+
+        vm.deal(minter, 10 ether);
+        vm.prank(minter);
+
+        vm.expectRevert(NFTMint.NFTMint_InsufficientValue.selector);
+        nftMint.order{ value: 0.01 ether }(mint, 1, new bytes32[](0));
+    }
+
+    function test_order_refundExcess() external {
+        MintERC1155 mint = test_createMint();
+
+        address minter = _randomAddress();
+
+        vm.deal(minter, 0.013 ether);
+        vm.prank(minter);
+
+        nftMint.order{ value: 0.013 ether }(mint, 1, new bytes32[](0));
+
+        assertEq(minter.balance, 0.002 ether);
+    }
+
     event OrderFilled(MintERC1155 indexed mint, address indexed to, uint256 amount, uint256[] amounts);
 
     function test_fillOrders() external {
