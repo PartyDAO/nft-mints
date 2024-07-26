@@ -182,10 +182,10 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
         return string.concat("data:application/json;utf8,", json);
     }
 
-    function VERSION() external pure returns (string memory) {
-        return "0.1.3";
-    }
-
+    /**
+     * @notice Check if the given address can receive tokens from this contract
+     * @param to Address to check if receiving tokens is safe
+     */
     function safeBatchTransferAcceptanceCheckOnMint(address to) external view returns (bool) {
         uint256[] memory idOrAmountArray = new uint256[](1);
         idOrAmountArray[0] = 1;
@@ -206,5 +206,9 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
             }
         }
         return true;
+    }
+
+    function VERSION() external pure returns (string memory) {
+        return "0.1.4";
     }
 }
