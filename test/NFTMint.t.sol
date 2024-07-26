@@ -47,7 +47,9 @@ contract NFTMintTest is TestBase {
         return nftMint.createMint(mintArgs);
     }
 
-    event OrderPlaced(MintERC1155 indexed mint, address indexed to, uint256 amount, string comment);
+    event OrderPlaced(
+        MintERC1155 indexed mint, uint256 indexed orderId, address indexed to, uint256 amount, string comment
+    );
 
     function test_order() public returns (MintERC1155, address) {
         MintERC1155 mint = test_createMint();
@@ -56,7 +58,7 @@ contract NFTMintTest is TestBase {
         vm.deal(minter, 10 ether);
         vm.prank(minter);
         vm.expectEmit(true, true, true, true);
-        emit OrderPlaced(mint, minter, 100, "Fist order!");
+        emit OrderPlaced(mint, 0, minter, 100, "Fist order!");
 
         nftMint.order{ value: 1.1 ether }(mint, 100, "Fist order!", new bytes32[](0));
 
@@ -88,6 +90,26 @@ contract NFTMintTest is TestBase {
         nftMint.order{ value: 0.066 ether }(mint, 6, "", new bytes32[](0));
     }
 
+    function test_order_placeTwoOrders() external {
+        MintERC1155 mint = test_createMint();
+
+        address minter = _randomAddress();
+
+        vm.deal(minter, 10 ether);
+        vm.startPrank(minter);
+
+        vm.expectEmit(true, true, true, true);
+        emit OrderPlaced(mint, 0, minter, 10, "Fist order!");
+        nftMint.order{ value: 0.11 ether }(mint, 10, "Fist order!", new bytes32[](0));
+
+        vm.expectEmit(true, true, true, true);
+        emit OrderPlaced(mint, 1, minter, 10, "Second order!");
+        nftMint.order{ value: 0.11 ether }(mint, 10, "Second order!", new bytes32[](0));
+        vm.stopPrank();
+
+        nftMint.fillOrders(0);
+    }
+
     function test_order_insufficientValue() external {
         MintERC1155 mint = test_createMint();
 
@@ -113,7 +135,9 @@ contract NFTMintTest is TestBase {
         assertEq(minter.balance, 0.002 ether);
     }
 
-    event OrderFilled(MintERC1155 indexed mint, address indexed to, uint256 amount, uint256[] amounts);
+    event OrderFilled(
+        MintERC1155 indexed mint, uint256 indexed orderId, address indexed to, uint256 amount, uint256[] amounts
+    );
 
     function test_fillOrders() external {
         vm.roll(block.number + 1);
@@ -121,7 +145,7 @@ contract NFTMintTest is TestBase {
 
         // Not checking data because token amounts is inherently random
         vm.expectEmit(true, true, true, false);
-        emit OrderFilled(mint, minter, 100, new uint256[](0));
+        emit OrderFilled(mint, 0, minter, 100, new uint256[](0));
         nftMint.fillOrders(0);
     }
 
