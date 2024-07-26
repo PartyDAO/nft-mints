@@ -19,14 +19,17 @@ contract NFTMint is Ownable {
     event OrderFilled(MintERC1155 indexed mint, address indexed to, uint256 amount, uint256[] amounts);
 
     struct MintArgs {
-        uint256 maxMints;
-        MintERC1155.Edition[] editions;
-        bytes32 allowlistMerkleRoot;
         uint256 pricePerMint;
-        uint256 perWalletLimit;
         uint256 feePerMint;
         address payable owner;
         address payable feeRecipient;
+        bytes32 allowlistMerkleRoot;
+        uint256 perWalletLimit;
+        uint256 maxMints;
+        MintERC1155.Edition[] editions;
+        string name;
+        string imageURI;
+        string description;
     }
 
     struct MintInfo {
@@ -35,8 +38,8 @@ contract NFTMint is Ownable {
         address payable owner;
         address payable feeRecipient;
         uint256 perWalletLimit;
-        uint256 remainingMints;
         bytes32 allowlistMerkleRoot;
+        uint256 remainingMints;
         mapping(address => uint256) mintedPerWallet;
     }
 
@@ -58,7 +61,7 @@ contract NFTMint is Ownable {
 
     function createMint(MintArgs memory args) external returns (MintERC1155) {
         MintERC1155 newMint = MintERC1155(Clones.clone(MINT_NFT_LOGIC));
-        newMint.initialize(address(this), args.editions);
+        newMint.initialize(address(this), args.name, args.imageURI, args.description, args.editions);
 
         MintInfo storage mintInfo = mints[newMint];
         mintInfo.owner = args.owner;

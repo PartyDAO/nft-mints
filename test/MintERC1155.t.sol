@@ -30,7 +30,11 @@ contract MintERC1155Test is TestBase, LintJSON {
         });
 
         token = MintERC1155(Clones.clone(address(impl)));
-        token.initialize(address(this), editions);
+        token.initialize(address(this), "My Token Name", "image here", "This is a token", editions);
+
+        assertEq(token.name(), "My Token Name");
+        assertEq(token.imageURI(), "image here");
+        assertEq(token.description(), "This is a token");
     }
 
     event ContractURIUpdated();
@@ -38,10 +42,11 @@ contract MintERC1155Test is TestBase, LintJSON {
     function test_setContractInfo() external {
         vm.expectEmit(true, true, true, true);
         emit ContractURIUpdated();
-        token.setContractInfo("MyTestContract", "https://example.com/image.png", address(this), 100);
+        token.setContractInfo("MyTestContract", "https://example.com/image.png", "New description", address(this), 100);
 
         assertEq(token.name(), "MyTestContract");
         assertEq(token.imageURI(), "https://example.com/image.png");
+        assertEq(token.description(), "New description");
 
         (address royaltyReceiver, uint256 royalties) = token.royaltyInfo(0, 1 ether);
         assertEq(royaltyReceiver, address(this));
@@ -63,7 +68,7 @@ contract MintERC1155Test is TestBase, LintJSON {
         MintERC1155 newToken = MintERC1155(Clones.clone(address(impl)));
 
         vm.expectRevert(MintERC1155.MintERC1155_PercentChance0.selector);
-        newToken.initialize(address(this), editions);
+        newToken.initialize(address(this), "", "", "", editions);
     }
 
     function test_initialize_totalPercentChanceNot100() external {
@@ -79,7 +84,7 @@ contract MintERC1155Test is TestBase, LintJSON {
         MintERC1155 newToken = MintERC1155(Clones.clone(address(impl)));
 
         vm.expectRevert(MintERC1155.MintERC1155_TotalPercentChanceNot100.selector);
-        newToken.initialize(address(this), editions);
+        newToken.initialize(address(this), "", "", "", editions);
     }
 
     function test_mintBatch_unauthorized() external {

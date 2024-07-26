@@ -38,7 +38,10 @@ contract NFTMintTest is TestBase {
             perWalletLimit: 105,
             feePerMint: 0.001 ether,
             owner: payable(address(this)),
-            feeRecipient: payable(address(this))
+            feeRecipient: payable(address(this)),
+            name: "My Token Name",
+            imageURI: "image here",
+            description: "This is a description"
         });
 
         return nftMint.createMint(mintArgs);
