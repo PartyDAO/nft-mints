@@ -17,7 +17,8 @@ contract LintJSON is Test {
             return;
         }
 
-        string memory filePath = string.concat("./out/lint-json-", Strings.toHexString(salt++), ".json");
+        uint256 entropy = uint256(keccak256(abi.encodePacked(salt++, json)));
+        string memory filePath = string.concat("./out/lint-json-", Strings.toHexString(entropy), ".json");
 
         vm.writeFile(filePath, json);
         string[] memory inputs = new string[](4);

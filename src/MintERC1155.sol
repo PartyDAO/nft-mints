@@ -7,7 +7,10 @@ import { ERC2981Upgradeable } from "@openzeppelin/contracts-upgradeable/token/co
 import { LibString } from "solady/src/utils/LibString.sol";
 
 contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeable {
-    error Unauthorized();
+    error MintERC1155_Unauthorized();
+    error MintERC1155_ArityMismatch();
+    error MintERC1155_TotalPercentChanceNot100();
+    error MintERC1155_PercentChance0();
 
     event ContractURIUpdated();
 
@@ -23,7 +26,7 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
         Attribute[] attributes;
     }
 
-    address immutable MINTER;
+    address public immutable MINTER;
 
     /// @notice Editions for this contract
     Edition[] public editions;
@@ -48,7 +51,7 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
             totalPercentChance += editions[i].percentChance = editions_[i].percentChance;
 
             if (editions_[i].percentChance == 0) {
-                revert("MintERC1155: percent chance must be greater than 0");
+                revert MintERC1155_PercentChance0();
             }
 
             for (uint256 j = 0; j < editions_[i].attributes.length; j++) {
@@ -57,23 +60,16 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
         }
 
         if (totalPercentChance != 100) {
-            revert("MintERC1155: total percent chance must equal 100");
+            revert MintERC1155_TotalPercentChanceNot100();
         }
-    }
-
-    function mint(address to, uint256 id) external {
-        if (msg.sender != MINTER) {
-            revert Unauthorized();
-        }
-        _mint(to, id, 1, "");
     }
 
     function mintBatch(address to, uint256[] memory ids, uint256[] memory amounts) external {
         if (msg.sender != MINTER) {
-            revert Unauthorized();
+            revert MintERC1155_Unauthorized();
         }
         if (ids.length != amounts.length) {
-            revert("MintERC1155: ids and amounts length mismatch");
+            revert MintERC1155_ArityMismatch();
         }
         _mintBatch(to, ids, amounts, "");
     }

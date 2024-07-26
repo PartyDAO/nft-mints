@@ -31,11 +31,11 @@ contract NFTMintTest is TestBase {
         });
 
         NFTMint.MintArgs memory mintArgs = NFTMint.MintArgs({
-            maxMints: 100,
+            maxMints: 110,
             editions: editions,
             allowlistMerkleRoot: bytes32(0),
             pricePerMint: 0.01 ether,
-            perWalletLimit: 100,
+            perWalletLimit: 105,
             feePerMint: 0.001 ether,
             owner: payable(address(this)),
             feeRecipient: payable(address(this))
@@ -58,6 +58,56 @@ contract NFTMintTest is TestBase {
         nftMint.order{ value: 1.1 ether }(mint, 100, "Fist order!", new bytes32[](0));
 
         return (mint, minter);
+    }
+
+    function test_order_order101_exceedsMaxOrderAmountPerTx() external {
+        MintERC1155 mint = test_createMint();
+
+        address minter = _randomAddress();
+
+        vm.deal(minter, 10 ether);
+        vm.prank(minter);
+
+        vm.expectRevert(NFTMint.NFTMint_ExceedsMaxOrderAmountPerTx.selector);
+        nftMint.order{ value: 1.1 ether }(mint, 101, "", new bytes32[](0));
+    }
+
+    function test_order_exceedsWalletLimit() external {
+        MintERC1155 mint = test_createMint();
+
+        address minter = _randomAddress();
+
+        vm.deal(minter, 10 ether);
+        vm.startPrank(minter);
+
+        nftMint.order{ value: 1.1 ether }(mint, 100, "", new bytes32[](0));
+        vm.expectRevert(NFTMint.NFTMint_ExceedsWalletLimit.selector);
+        nftMint.order{ value: 0.066 ether }(mint, 6, "", new bytes32[](0));
+    }
+
+    function test_order_insufficientValue() external {
+        MintERC1155 mint = test_createMint();
+
+        address minter = _randomAddress();
+
+        vm.deal(minter, 10 ether);
+        vm.prank(minter);
+
+        vm.expectRevert(NFTMint.NFTMint_InsufficientValue.selector);
+        nftMint.order{ value: 0.01 ether }(mint, 1, "", new bytes32[](0));
+    }
+
+    function test_order_refundExcess() external {
+        MintERC1155 mint = test_createMint();
+
+        address minter = _randomAddress();
+
+        vm.deal(minter, 0.013 ether);
+        vm.prank(minter);
+
+        nftMint.order{ value: 0.013 ether }(mint, 1, "", new bytes32[](0));
+
+        assertEq(minter.balance, 0.002 ether);
     }
 
     event OrderFilled(MintERC1155 indexed mint, address indexed to, uint256 amount, uint256[] amounts);
