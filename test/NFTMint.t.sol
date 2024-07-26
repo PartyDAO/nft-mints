@@ -16,7 +16,7 @@ contract NFTMintTest is TestBase {
         MintERC1155.Attribute[] memory attributes = new MintERC1155.Attribute[](1);
         attributes[0] = MintERC1155.Attribute({ traitType: "traitType", value: "value" });
 
-        MintERC1155.Edition[] memory editions = new MintERC1155.Edition[](2);
+        MintERC1155.Edition[] memory editions = new MintERC1155.Edition[](3);
         editions[0] = MintERC1155.Edition({
             name: "Edition 1",
             imageURI: "https://example.com/image1.png",
@@ -26,7 +26,13 @@ contract NFTMintTest is TestBase {
         editions[1] = MintERC1155.Edition({
             name: "Edition 2",
             imageURI: "https://example.com/image2.png",
-            percentChance: 20,
+            percentChance: 15,
+            attributes: new MintERC1155.Attribute[](0)
+        });
+        editions[2] = MintERC1155.Edition({
+            name: "Edition 3",
+            imageURI: "https://example.com/image2.png",
+            percentChance: 5,
             attributes: new MintERC1155.Attribute[](0)
         });
 
