@@ -73,7 +73,7 @@ contract NFTMint is Ownable {
      */
     function createMint(MintArgs memory args) external returns (MintERC1155) {
         MintERC1155 newMint = MintERC1155(Clones.clone(MINT_NFT_LOGIC));
-        newMint.initialize(address(this), args.name, args.imageURI, args.description, args.editions);
+        newMint.initialize(args.owner, args.name, args.imageURI, args.description, args.editions);
 
         MintInfo storage mintInfo = mints[newMint];
         mintInfo.owner = args.owner;
