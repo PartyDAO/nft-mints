@@ -15,8 +15,12 @@ contract NFTMint is Ownable {
     error NFTMint_FailedToTransferFunds();
 
     event MintCreated(MintERC1155 indexed mint, MintArgs args);
-    event OrderPlaced(MintERC1155 indexed mint, address indexed to, uint256 amount, string comment);
-    event OrderFilled(MintERC1155 indexed mint, address indexed to, uint256 amount, uint256[] amounts);
+    event OrderPlaced(
+        MintERC1155 indexed mint, uint256 indexed orderId, address indexed to, uint256 amount, string comment
+    );
+    event OrderFilled(
+        MintERC1155 indexed mint, uint256 indexed orderId, address indexed to, uint256 amount, uint256[] amounts
+    );
 
     struct MintArgs {
         uint256 pricePerMint;
@@ -49,16 +53,23 @@ contract NFTMint is Ownable {
         uint256 amount;
     }
 
+    /// @notice Address of the logic contract for minting NFTs
     address public immutable MINT_NFT_LOGIC;
 
     mapping(MintERC1155 => MintInfo) public mints;
+    /// @notice Array of all orders placed. Filled orders are deleted.
     Order[] public orders;
+    /// @notice Next order ID to fill in the `orders` array. All orders before this index have been filled.
     uint256 public nextOrderIdToFill;
 
     constructor(address owner_) Ownable(owner_) {
         MINT_NFT_LOGIC = address(new MintERC1155(address(this)));
     }
 
+    /**
+     * @notice Create a new mint
+     * @param args Arguments for the mint
+     */
     function createMint(MintArgs memory args) external returns (MintERC1155) {
         MintERC1155 newMint = MintERC1155(Clones.clone(MINT_NFT_LOGIC));
         newMint.initialize(address(this), args.name, args.imageURI, args.description, args.editions);
@@ -76,6 +87,13 @@ contract NFTMint is Ownable {
         return newMint;
     }
 
+    /**
+     * @notice Place an order for a mint. The `msg.sender` must be able to receive ERC1155s.
+     * @param mint Address of the ERC1155 for the order
+     * @param amount Amount of 1155s to order
+     * @param comment Optional comment to attach to the order
+     * @param merkleProof Merkle proof showing inclusion in the merkle root
+     */
     function order(
         MintERC1155 mint,
         uint256 amount,
@@ -125,9 +143,13 @@ contract NFTMint is Ownable {
             revert NFTMint_FailedToTransferFunds();
         }
 
-        emit OrderPlaced(mint, msg.sender, modifiedAmount, comment);
+        emit OrderPlaced(mint, orders.length - 1, msg.sender, modifiedAmount, comment);
     }
 
+    /**
+     * @notice Fill pending orders. Only callable by owner.
+     * @param numOrdersToFill The maximum number of orders to fill. Specify 0 to fill all orders.
+     */
     function fillOrders(uint256 numOrdersToFill) external onlyOwner {
         uint256 nonce = 0;
         uint256 nextOrderIdToFill_ = nextOrderIdToFill;
@@ -158,7 +180,7 @@ contract NFTMint is Ownable {
                 }
             }
 
-            emit OrderFilled(currentOrder.mint, currentOrder.to, currentOrder.amount, amounts);
+            emit OrderFilled(currentOrder.mint, nextOrderIdToFill_, currentOrder.to, currentOrder.amount, amounts);
 
             // If the mint fails with 500_000 gas, the order is still marked as filled.
             try currentOrder.mint.mintBatch{ gas: 500_000 }(currentOrder.to, ids, amounts) { } catch { }
