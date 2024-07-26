@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { ERC1155Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
+import { IERC1155Receiver } from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { ERC2981Upgradeable } from "@openzeppelin/contracts-upgradeable/token/common/ERC2981Upgradeable.sol";
 import { LibString } from "solady/src/utils/LibString.sol";
@@ -183,5 +184,27 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
 
     function VERSION() external pure returns (string memory) {
         return "0.1.3";
+    }
+
+    function safeBatchTransferAcceptanceCheckOnMint(address to) external view returns (bool) {
+        uint256[] memory idOrAmountArray = new uint256[](1);
+        idOrAmountArray[0] = 1;
+
+        bytes memory callData = abi.encodeCall(
+            IERC1155Receiver.onERC1155BatchReceived, (MINTER, address(0), idOrAmountArray, idOrAmountArray, "")
+        );
+
+        if (to.code.length > 0) {
+            (bool success, bytes memory res) = to.staticcall{ gas: 400_000 }(callData);
+            if (success) {
+                bytes4 response = abi.decode(res, (bytes4));
+                if (response != IERC1155Receiver.onERC1155BatchReceived.selector) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        return true;
     }
 }
