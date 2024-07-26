@@ -34,15 +34,24 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
     string public name;
     /// @notice Contract level image for `contractURI`
     string public imageURI;
+    /// @notice Contract level description for `contractURI`
+    string public description;
 
     constructor(address minter) {
         _disableInitializers();
         MINTER = minter;
     }
 
-    function initialize(address owner_, Edition[] memory editions_) public initializer {
-        __Ownable_init(owner_);
-
+    function initialize(
+        address owner_,
+        string calldata name_,
+        string calldata imageURI_,
+        string calldata description_,
+        Edition[] calldata editions_
+    )
+        external
+        initializer
+    {
         uint256 totalPercentChance = 0;
         for (uint256 i = 0; i < editions_.length; i++) {
             editions.push();
@@ -62,6 +71,12 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
         if (totalPercentChance != 100) {
             revert MintERC1155_TotalPercentChanceNot100();
         }
+
+        __Ownable_init(owner_);
+        name = name_;
+        imageURI = imageURI_;
+        description = description_;
+        _setDefaultRoyalty(owner_, 150);
     }
 
     function mintBatch(address to, uint256[] memory ids, uint256[] memory amounts) external {
@@ -137,6 +152,7 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
     function setContractInfo(
         string memory name_,
         string memory imageURI_,
+        string memory description_,
         address royaltyReceiver,
         uint16 royaltyAmountBps
     )
@@ -146,13 +162,21 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
         _setDefaultRoyalty(royaltyReceiver, royaltyAmountBps);
         name = name_;
         imageURI = imageURI_;
+        description = description_;
 
         emit ContractURIUpdated();
     }
 
     function contractURI() external view returns (string memory) {
-        string memory json =
-            string.concat('{"name":"', LibString.escapeJSON(name), '","image":"', LibString.escapeJSON(imageURI), '"}');
+        string memory json = string.concat(
+            '{"name":"',
+            LibString.escapeJSON(name),
+            '","image":"',
+            LibString.escapeJSON(imageURI),
+            '","description":"',
+            LibString.escapeJSON(description),
+            '"}'
+        );
 
         return string.concat("data:application/json;utf8,", json);
     }
