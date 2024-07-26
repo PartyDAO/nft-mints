@@ -135,6 +135,13 @@ contract NFTMintTest is TestBase {
         assertEq(minter.balance, 0.002 ether);
     }
 
+    function test_order_buyerCantReceiveERC1155() external {
+        MintERC1155 mint = test_createMint();
+
+        vm.expectRevert(NFTMint.NFTMint_BuyerNotAcceptingERC1155.selector);
+        nftMint.order{ value: 0.011 ether }(mint, 1, "", new bytes32[](0));
+    }
+
     event OrderFilled(
         MintERC1155 indexed mint, uint256 indexed orderId, address indexed to, uint256 amount, uint256[] amounts
     );

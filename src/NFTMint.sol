@@ -13,6 +13,7 @@ contract NFTMint is Ownable {
     error NFTMint_InsufficientValue();
     error NFTMint_InvalidMerkleProof();
     error NFTMint_FailedToTransferFunds();
+    error NFTMint_BuyerNotAcceptingERC1155();
 
     event MintCreated(MintERC1155 indexed mint, MintArgs args);
     event OrderPlaced(
@@ -127,6 +128,10 @@ contract NFTMint is Ownable {
             if (!MerkleProof.verify(merkleProof, mintInfo.allowlistMerkleRoot, leaf)) {
                 revert NFTMint_InvalidMerkleProof();
             }
+        }
+
+        if (!mint.safeBatchTransferAcceptanceCheckOnMint(msg.sender)) {
+            revert NFTMint_BuyerNotAcceptingERC1155();
         }
 
         orders.push(Order({ to: msg.sender, mint: mint, amount: modifiedAmount }));
