@@ -187,25 +187,24 @@ contract NFTMint is Ownable {
 
             emit OrderFilled(currentOrder.mint, nextOrderIdToFill_, currentOrder.to, currentOrder.amount, amounts);
 
-            uint256[] memory modifiedIds = new uint256[](editions.length);
-            uint256[] memory modifiedAmounts = new uint256[](editions.length);
-
             uint256 numNonZero = 0;
             for (uint256 i = 0; i < editions.length; i++) {
                 if (amounts[i] > 0) {
-                    modifiedIds[numNonZero] = ids[i];
-                    modifiedAmounts[numNonZero] = amounts[i];
+                    if (numNonZero < i) {
+                        ids[numNonZero] = ids[i];
+                        amounts[numNonZero] = amounts[i];
+                    }
                     numNonZero++;
                 }
             }
 
             assembly {
-                mstore(modifiedIds, numNonZero)
-                mstore(modifiedAmounts, numNonZero)
+                mstore(ids, numNonZero)
+                mstore(amounts, numNonZero)
             }
 
             // If the mint fails with 500_000 gas, the order is still marked as filled.
-            try currentOrder.mint.mintBatch{ gas: 500_000 }(currentOrder.to, modifiedIds, modifiedAmounts) { } catch { }
+            try currentOrder.mint.mintBatch{ gas: 500_000 }(currentOrder.to, ids, amounts) { } catch { }
             delete orders[nextOrderIdToFill_];
             nextOrderIdToFill_++;
         }
