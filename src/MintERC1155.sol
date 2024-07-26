@@ -26,6 +26,7 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
         Attribute[] attributes;
     }
 
+    /// @notice Address that can mint tokens
     address public immutable MINTER;
 
     /// @notice Editions for this contract
@@ -37,11 +38,22 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
     /// @notice Contract level description for `contractURI`
     string public description;
 
+    /**
+     * @param minter The constant address assigned to `MINTER`
+     */
     constructor(address minter) {
         _disableInitializers();
         MINTER = minter;
     }
 
+    /**
+     * @notice Initialize the contract. Must be called on all proxy contracts.
+     * @param owner_ The owner of the contract
+     * @param name_ The name of the contract
+     * @param imageURI_ The image URI of the contract
+     * @param description_ The description of the contract
+     * @param editions_ The editions of the token contract
+     */
     function initialize(
         address owner_,
         string calldata name_,
@@ -89,10 +101,16 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
         _mintBatch(to, ids, amounts, "");
     }
 
+    /**
+     * @notice Get the total number of editions
+     */
     function totalEditions() external view returns (uint256) {
         return editions.length;
     }
 
+    /**
+     * @notice Get all editions
+     */
     function getAllEditions() external view returns (Edition[] memory) {
         Edition[] memory allEditions = new Edition[](editions.length);
         for (uint256 i = 0; i < editions.length; i++) {
@@ -101,6 +119,10 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
         return allEditions;
     }
 
+    /**
+     * @notice Get the URI for a token id. Fully stored on-chain.
+     * @param tokenId The token id to get the URI for
+     */
     function uri(uint256 tokenId) public view override returns (string memory) {
         Edition memory edition = editions[tokenId - 1];
 
@@ -149,6 +171,14 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
         return super.supportsInterface(interfaceId);
     }
 
+    /**
+     * @notice Set the contract level information. Callable by the owner.
+     * @param name_ Name of the contract
+     * @param imageURI_ Image URI of the contract
+     * @param description_ Description of the contract
+     * @param royaltyReceiver Royalty receiver specified by `ERC2981`
+     * @param royaltyAmountBps Royalty amount specified by `ERC2981`
+     */
     function setContractInfo(
         string memory name_,
         string memory imageURI_,
