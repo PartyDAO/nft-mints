@@ -189,7 +189,7 @@ contract NFTMint is Ownable {
 
             uint256 numNonZero = 0;
             for (uint256 i = 0; i < editions.length; i++) {
-                if (amounts[i] > 0) {
+                if (amounts[i] != 0) {
                     if (numNonZero < i) {
                         ids[numNonZero] = ids[i];
                         amounts[numNonZero] = amounts[i];
