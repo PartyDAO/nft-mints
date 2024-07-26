@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import { TestBase } from "./util/TestBase.t.sol";
 import { NFTMint } from "src/NFTMint.sol";
 import { MintERC1155 } from "src/MintERC1155.sol";
+import { Vm } from "forge-std/src/Test.sol";
 
 contract NFTMintTest is TestBase {
     NFTMint nftMint;
@@ -16,7 +17,7 @@ contract NFTMintTest is TestBase {
         MintERC1155.Attribute[] memory attributes = new MintERC1155.Attribute[](1);
         attributes[0] = MintERC1155.Attribute({ traitType: "traitType", value: "value" });
 
-        MintERC1155.Edition[] memory editions = new MintERC1155.Edition[](2);
+        MintERC1155.Edition[] memory editions = new MintERC1155.Edition[](3);
         editions[0] = MintERC1155.Edition({
             name: "Edition 1",
             imageURI: "https://example.com/image1.png",
@@ -26,7 +27,13 @@ contract NFTMintTest is TestBase {
         editions[1] = MintERC1155.Edition({
             name: "Edition 2",
             imageURI: "https://example.com/image2.png",
-            percentChance: 20,
+            percentChance: 15,
+            attributes: new MintERC1155.Attribute[](0)
+        });
+        editions[2] = MintERC1155.Edition({
+            name: "Edition 3",
+            imageURI: "https://example.com/image2.png",
+            percentChance: 5,
             attributes: new MintERC1155.Attribute[](0)
         });
 
@@ -146,14 +153,45 @@ contract NFTMintTest is TestBase {
         MintERC1155 indexed mint, uint256 indexed orderId, address indexed to, uint256 amount, uint256[] amounts
     );
 
-    function test_fillOrders() external {
-        vm.roll(block.number + 1);
+    function test_fillOrders(uint96 blocksToSkip) external {
+        vm.roll(block.number + blocksToSkip);
         (MintERC1155 mint, address minter) = test_order();
 
         // Not checking data because token amounts is inherently random
         vm.expectEmit(true, true, true, false);
-        emit OrderFilled(mint, 0, minter, 100, new uint256[](0));
+        emit OrderFilled(mint, 0, minter, 5, new uint256[](0));
+        vm.recordLogs();
         nftMint.fillOrders(0);
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        for (uint256 i = 0; i < logs.length; i++) {
+            if (logs[i].emitter != address(mint)) {
+                continue;
+            }
+            bytes32 singleTransferLog0 =
+                keccak256(abi.encodePacked("TransferSingle(address,address,address,uint256,uint256)"));
+            bytes32 batchTransferLog0 =
+                keccak256(abi.encodePacked("TransferBatch(address,address,address,uint256[],uint256[])"));
+
+            if (logs[i].topics[0] != singleTransferLog0 && logs[i].topics[0] != batchTransferLog0) {
+                revert("No transfer event found");
+            }
+
+            if (logs[i].topics[0] == singleTransferLog0) {
+                (, uint256 amount) = abi.decode(logs[i].data, (uint256, uint256));
+                assertEq(amount, 100);
+            }
+            if (logs[i].topics[0] == batchTransferLog0) {
+                (, uint256[] memory amounts) = abi.decode(logs[i].data, (uint256[], uint256[]));
+
+                uint256 sumAmounts = 0;
+                for (uint256 j = 0; j < amounts.length; j++) {
+                    sumAmounts += amounts[j];
+                }
+
+                assertEq(sumAmounts, 100);
+            }
+        }
     }
 
     receive() external payable { }
