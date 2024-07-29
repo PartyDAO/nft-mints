@@ -21,6 +21,11 @@
           "deployedArgs": "0x00000000000000000000000085065829b9914ea8f456911e0f6d2f9d9a1705ed",
           "version": "0.1.3",
           "address": "0xD85Ed20269C048dAC4C1A1D5E0e012A4eF5d1fb1"
+        },
+        {
+          "deployedArgs": "0x00000000000000000000000085065829b9914ea8f456911e0f6d2f9d9a1705ed",
+          "version": "0.1.4",
+          "address": "0x7bABCB9622B8a252D7e135928AA5e27280E302DD"
         }
       ],
       "constructorArgs": ["PartyDAO"]
