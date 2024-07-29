@@ -217,6 +217,6 @@ contract NFTMint is Ownable {
     }
 
     function VERSION() external pure returns (string memory) {
-        return "0.1.4";
+        return "0.1.5";
     }
 }
