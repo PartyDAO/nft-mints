@@ -51,6 +51,7 @@ contract NFTMint is Ownable {
     struct Order {
         MintERC1155 mint;
         address to;
+        uint40 orderTimestamp;
         uint256 amount;
     }
 
@@ -72,11 +73,7 @@ contract NFTMint is Ownable {
      * @param args Arguments for the mint
      */
     function createMint(MintArgs memory args) external returns (MintERC1155) {
-        MintERC1155 newMint = MintERC1155(
-            Clones.cloneDeterministic(
-                MINT_NFT_LOGIC, keccak256(abi.encodePacked(block.chainid, msg.sender, block.timestamp))
-            )
-        );
+        MintERC1155 newMint = MintERC1155(Clones.clone(MINT_NFT_LOGIC));
         newMint.initialize(args.owner, args.name, args.imageURI, args.description, args.editions);
 
         MintInfo storage mintInfo = mints[newMint];
@@ -138,7 +135,9 @@ contract NFTMint is Ownable {
             revert NFTMint_BuyerNotAcceptingERC1155();
         }
 
-        orders.push(Order({ to: msg.sender, mint: mint, amount: modifiedAmount }));
+        orders.push(
+            Order({ to: msg.sender, mint: mint, orderTimestamp: uint40(block.timestamp), amount: modifiedAmount })
+        );
 
         (bool feeSuccess,) = mintInfo.feeRecipient.call{ value: mintInfo.feePerMint * modifiedAmount, gas: 100_000 }("");
         (bool mintProceedsSuccess,) =
@@ -156,10 +155,11 @@ contract NFTMint is Ownable {
     }
 
     /**
-     * @notice Fill pending orders. Only callable by owner.
+     * @notice Fill pending orders. Orders older than 1 hour are fillable by anyone. Newer orders can only be filled by
+     * the owner.
      * @param numOrdersToFill The maximum number of orders to fill. Specify 0 to fill all orders.
      */
-    function fillOrders(uint256 numOrdersToFill) external onlyOwner {
+    function fillOrders(uint256 numOrdersToFill) external {
         uint256 nonce = 0;
         uint256 nextOrderIdToFill_ = nextOrderIdToFill;
         uint256 finalNextOrderToFill =
@@ -167,6 +167,10 @@ contract NFTMint is Ownable {
 
         while (nextOrderIdToFill_ < finalNextOrderToFill) {
             Order storage currentOrder = orders[nextOrderIdToFill_];
+            if (msg.sender != owner() && currentOrder.orderTimestamp + 1 hours > block.timestamp) {
+                // Only the owner can fill orders that are less than 1 hour old
+                break;
+            }
             MintERC1155.Edition[] memory editions = currentOrder.mint.getAllEditions();
 
             uint256[] memory ids = new uint256[](editions.length);
