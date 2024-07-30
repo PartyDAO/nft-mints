@@ -194,5 +194,22 @@ contract NFTMintTest is TestBase {
         }
     }
 
+    function test_fillOrdersPublic(address filler) external {
+        vm.assume(address(this) != filler);
+
+        (MintERC1155 mint, address minter) = test_order();
+
+        vm.startPrank(filler);
+        nftMint.fillOrders(0);
+        assertEq(nftMint.nextOrderIdToFill(), 0);
+
+        skip(1 hours);
+        vm.expectEmit(true, true, true, false);
+        emit OrderFilled(mint, 0, minter, 5, new uint256[](0));
+        nftMint.fillOrders(0);
+
+        assertEq(nftMint.nextOrderIdToFill(), 1);
+    }
+
     receive() external payable { }
 }
