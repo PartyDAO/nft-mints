@@ -195,6 +195,8 @@ contract NFTMintTest is TestBase {
     }
 
     function test_fillOrdersPublic(address filler) external {
+        vm.assume(address(this) != address(0));
+
         (MintERC1155 mint, address minter) = test_order();
 
         vm.startPrank(filler);
