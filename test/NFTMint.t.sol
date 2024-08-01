@@ -38,7 +38,7 @@ contract NFTMintTest is TestBase {
         });
 
         NFTMint.MintArgs memory mintArgs = NFTMint.MintArgs({
-            mintDuration: 1 days,
+            mintExpiration: uint40(block.timestamp + 1 days),
             maxMints: 110,
             editions: editions,
             allowlistMerkleRoot: bytes32(0),

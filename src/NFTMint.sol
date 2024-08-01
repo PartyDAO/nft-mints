@@ -30,7 +30,7 @@ contract NFTMint is Ownable {
         uint256 feePerMint;
         address payable owner;
         address payable feeRecipient;
-        uint40 mintDuration;
+        uint40 mintExpiration;
         bytes32 allowlistMerkleRoot;
         uint256 perWalletLimit;
         uint256 maxMints;
@@ -92,7 +92,7 @@ contract NFTMint is Ownable {
         mintInfo.feeRecipient = args.feeRecipient;
         mintInfo.perWalletLimit = args.perWalletLimit;
         mintInfo.allowlistMerkleRoot = args.allowlistMerkleRoot;
-        mintInfo.mintExpiration = uint40(block.timestamp + args.mintDuration);
+        mintInfo.mintExpiration = args.mintExpiration;
 
         emit MintCreated(newMint, args);
         return newMint;
