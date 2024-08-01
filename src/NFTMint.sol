@@ -15,6 +15,7 @@ contract NFTMint is Ownable {
     error NFTMint_InvalidMerkleProof();
     error NFTMint_FailedToTransferFunds();
     error NFTMint_BuyerNotAcceptingERC1155();
+    error NFTMint_MintExpired();
 
     event MintCreated(MintERC1155 indexed mint, MintArgs args);
     event OrderPlaced(
@@ -29,6 +30,7 @@ contract NFTMint is Ownable {
         uint256 feePerMint;
         address payable owner;
         address payable feeRecipient;
+        uint40 mintDuration;
         bytes32 allowlistMerkleRoot;
         uint256 perWalletLimit;
         uint256 maxMints;
@@ -43,6 +45,7 @@ contract NFTMint is Ownable {
         uint256 feePerMint;
         address payable owner;
         address payable feeRecipient;
+        uint40 mintExpiration;
         uint256 perWalletLimit;
         bytes32 allowlistMerkleRoot;
         uint256 remainingMints;
@@ -89,6 +92,7 @@ contract NFTMint is Ownable {
         mintInfo.feeRecipient = args.feeRecipient;
         mintInfo.perWalletLimit = args.perWalletLimit;
         mintInfo.allowlistMerkleRoot = args.allowlistMerkleRoot;
+        mintInfo.mintExpiration = uint40(block.timestamp + args.mintDuration);
 
         emit MintCreated(newMint, args);
         return newMint;
@@ -115,6 +119,10 @@ contract NFTMint is Ownable {
         }
 
         MintInfo storage mintInfo = mints[mint];
+
+        if (mintInfo.mintExpiration < block.timestamp) {
+            revert NFTMint_MintExpired();
+        }
 
         uint256 modifiedAmount = Math.min(amount, mintInfo.remainingMints);
         mintInfo.remainingMints -= modifiedAmount;
