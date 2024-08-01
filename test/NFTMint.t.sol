@@ -38,6 +38,7 @@ contract NFTMintTest is TestBase {
         });
 
         NFTMint.MintArgs memory mintArgs = NFTMint.MintArgs({
+            mintExpiration: uint40(block.timestamp + 1 days),
             maxMints: 110,
             editions: editions,
             allowlistMerkleRoot: bytes32(0),
@@ -146,6 +147,19 @@ contract NFTMintTest is TestBase {
         MintERC1155 mint = test_createMint();
 
         vm.expectRevert(NFTMint.NFTMint_BuyerNotAcceptingERC1155.selector);
+        nftMint.order{ value: 0.011 ether }(mint, 1, "", new bytes32[](0));
+    }
+
+    function test_order_mintExpired() external {
+        MintERC1155 mint = test_createMint();
+
+        address minter = _randomAddress();
+
+        vm.deal(minter, 10 ether);
+        vm.prank(minter);
+
+        skip(2 days);
+        vm.expectRevert(NFTMint.NFTMint_MintExpired.selector);
         nftMint.order{ value: 0.011 ether }(mint, 1, "", new bytes32[](0));
     }
 
