@@ -7,6 +7,7 @@ import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { MintERC1155 } from "./MintERC1155.sol";
 
+/// @custom:security-contact security@partydao.org
 contract NFTMint is Ownable {
     error NFTMint_ExceedsMaxOrderAmountPerTx();
     error NFTMint_ExceedsWalletLimit();
