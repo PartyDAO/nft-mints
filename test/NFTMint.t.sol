@@ -156,6 +156,7 @@ contract NFTMintTest is TestBase {
     function test_fillOrders(uint96 blocksToSkip) external {
         vm.roll(block.number + blocksToSkip);
         (MintERC1155 mint, address minter) = test_order();
+        skip(1);
 
         // Not checking data because token amounts is inherently random
         vm.expectEmit(true, true, true, false);

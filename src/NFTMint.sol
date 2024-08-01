@@ -175,6 +175,10 @@ contract NFTMint is Ownable {
                 // Only the owner can fill orders that are less than 1 hour old
                 break;
             }
+            if (currentOrder.orderTimestamp == block.timestamp) {
+                // Don't fill orders in the same block to ensure there is randomness
+                break;
+            }
             MintERC1155.Edition[] memory editions = currentOrder.mint.getAllEditions();
 
             uint256[] memory ids = new uint256[](editions.length);
