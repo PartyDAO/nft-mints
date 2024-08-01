@@ -7,6 +7,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { ERC2981Upgradeable } from "@openzeppelin/contracts-upgradeable/token/common/ERC2981Upgradeable.sol";
 import { LibString } from "solady/src/utils/LibString.sol";
 
+/// @custom:security-contact security@partydao.org
 contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeable {
     error MintERC1155_Unauthorized();
     error MintERC1155_ArityMismatch();
@@ -209,6 +210,6 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
     }
 
     function VERSION() external pure returns (string memory) {
-        return "0.1.4";
+        return "0.1.5";
     }
 }
