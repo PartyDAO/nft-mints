@@ -98,7 +98,7 @@ contract MintERC1155Test is TestBase, LintJSON {
         token.mintBatch(address(this), new uint256[](1), new uint256[](0));
     }
 
-    function test_totalEditions() external {
+    function test_totalEditions() external view {
         assertEq(token.totalEditions(), 2);
     }
 
