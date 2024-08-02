@@ -26,14 +26,14 @@ contract NFTMint is Ownable {
     );
 
     struct MintArgs {
-        uint256 pricePerMint;
-        uint256 feePerMint;
+        uint96 pricePerMint;
+        uint96 feePerMint;
         address payable owner;
         address payable feeRecipient;
         uint40 mintExpiration;
         bytes32 allowlistMerkleRoot;
-        uint256 perWalletLimit;
-        uint256 maxMints;
+        uint32 perWalletLimit;
+        uint32 maxMints;
         MintERC1155.Edition[] editions;
         string name;
         string imageURI;
@@ -41,32 +41,32 @@ contract NFTMint is Ownable {
     }
 
     struct MintInfo {
-        uint256 pricePerMint;
-        uint256 feePerMint;
+        uint96 pricePerMint;
+        uint96 feePerMint;
+        uint32 remainingMints;
+        uint32 perWalletLimit;
+        uint40 mintExpiration;
         address payable owner;
         address payable feeRecipient;
-        uint40 mintExpiration;
-        uint256 perWalletLimit;
         bytes32 allowlistMerkleRoot;
-        uint256 remainingMints;
-        mapping(address => uint256) mintedPerWallet;
+        mapping(address => uint32) mintedPerWallet;
     }
 
     struct Order {
         MintERC1155 mint;
         address to;
         uint40 orderTimestamp;
-        uint256 amount;
+        uint32 amount;
     }
 
     /// @notice Address of the logic contract for minting NFTs
     address public immutable MINT_NFT_LOGIC;
 
+    /// @notice Next order ID to fill in the `orders` array. All orders before this index have been filled.
+    uint96 public nextOrderIdToFill;
     mapping(MintERC1155 => MintInfo) public mints;
     /// @notice Array of all orders placed. Filled orders are deleted.
     Order[] public orders;
-    /// @notice Next order ID to fill in the `orders` array. All orders before this index have been filled.
-    uint256 public nextOrderIdToFill;
 
     constructor(address owner_) Ownable(owner_) {
         MINT_NFT_LOGIC = address(new MintERC1155(address(this)));
@@ -107,7 +107,7 @@ contract NFTMint is Ownable {
      */
     function order(
         MintERC1155 mint,
-        uint256 amount,
+        uint32 amount,
         string memory comment,
         bytes32[] calldata merkleProof
     )
@@ -124,7 +124,7 @@ contract NFTMint is Ownable {
             revert NFTMint_MintExpired();
         }
 
-        uint256 modifiedAmount = Math.min(amount, mintInfo.remainingMints);
+        uint32 modifiedAmount = uint32(Math.min(amount, mintInfo.remainingMints));
         mintInfo.remainingMints -= modifiedAmount;
         uint256 totalCost = (mintInfo.pricePerMint + mintInfo.feePerMint) * modifiedAmount;
 
@@ -172,7 +172,7 @@ contract NFTMint is Ownable {
      * the owner.
      * @param numOrdersToFill The maximum number of orders to fill. Specify 0 to fill all orders.
      */
-    function fillOrders(uint256 numOrdersToFill) external {
+    function fillOrders(uint96 numOrdersToFill) external {
         uint256 nonce = 0;
         uint256 nextOrderIdToFill_ = nextOrderIdToFill;
         uint256 finalNextOrderToFill =
@@ -234,7 +234,7 @@ contract NFTMint is Ownable {
             nextOrderIdToFill_++;
         }
 
-        nextOrderIdToFill = nextOrderIdToFill_;
+        nextOrderIdToFill = uint96(nextOrderIdToFill_);
     }
 
     function VERSION() external pure returns (string memory) {
