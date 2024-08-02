@@ -49,7 +49,8 @@ contract NFTMintTest is TestBase {
             feeRecipient: payable(address(this)),
             name: "My Token Name",
             imageURI: "image here",
-            description: "This is a description"
+            description: "This is a description",
+            royaltyAmountBps: 150
         });
 
         return nftMint.createMint(mintArgs);
