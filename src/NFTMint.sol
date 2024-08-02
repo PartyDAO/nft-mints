@@ -94,7 +94,7 @@ contract NFTMint is Ownable {
         if (args.owner == address(0)) {
             revert NFTMint_InvalidOwner();
         }
-        if (args.feeRecipient == address(0)) {
+        if (args.feeRecipient == address(0) && args.feePerMint != 0) {
             revert NFTMint_InvalidFeeRecipient();
         }
 
