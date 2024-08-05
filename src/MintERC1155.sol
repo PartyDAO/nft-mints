@@ -49,36 +49,39 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
         string calldata name_,
         string calldata imageURI_,
         string calldata description_,
-        Edition[] calldata editions_
+        Edition[] calldata editions_,
+        uint16 royaltyAmountBps
     )
         external
         initializer
     {
-        uint256 totalPercentChance = 0;
-        for (uint256 i = 0; i < editions_.length; i++) {
-            editions.push();
-            editions[i].name = editions_[i].name;
-            editions[i].imageURI = editions_[i].imageURI;
-            totalPercentChance += editions[i].percentChance = editions_[i].percentChance;
+        {
+            uint256 totalPercentChance = 0;
+            for (uint256 i = 0; i < editions_.length; i++) {
+                editions.push();
+                editions[i].name = editions_[i].name;
+                editions[i].imageURI = editions_[i].imageURI;
+                totalPercentChance += editions[i].percentChance = editions_[i].percentChance;
 
-            if (editions_[i].percentChance == 0) {
-                revert MintERC1155_PercentChance0();
+                if (editions_[i].percentChance == 0) {
+                    revert MintERC1155_PercentChance0();
+                }
+
+                for (uint256 j = 0; j < editions_[i].attributes.length; j++) {
+                    editions[i].attributes.push(editions_[i].attributes[j]);
+                }
             }
 
-            for (uint256 j = 0; j < editions_[i].attributes.length; j++) {
-                editions[i].attributes.push(editions_[i].attributes[j]);
+            if (totalPercentChance != 100) {
+                revert MintERC1155_TotalPercentChanceNot100();
             }
         }
 
-        if (totalPercentChance != 100) {
-            revert MintERC1155_TotalPercentChanceNot100();
-        }
-
-        __Ownable_init(owner_);
         name = name_;
         imageURI = imageURI_;
         description = description_;
-        _setDefaultRoyalty(owner_, 150);
+        __Ownable_init(owner_);
+        _setDefaultRoyalty(owner_, royaltyAmountBps);
     }
 
     function mintBatch(address to, uint256[] memory ids, uint256[] memory amounts) external {

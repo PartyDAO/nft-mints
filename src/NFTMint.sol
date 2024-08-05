@@ -28,6 +28,7 @@ contract NFTMint is Ownable {
     struct MintArgs {
         uint96 pricePerMint;
         uint96 feePerMint;
+        uint16 royaltyAmountBps;
         address payable owner;
         address payable feeRecipient;
         uint40 mintExpiration;
@@ -82,7 +83,7 @@ contract NFTMint is Ownable {
                 MINT_NFT_LOGIC, keccak256(abi.encodePacked(block.chainid, msg.sender, block.timestamp))
             )
         );
-        newMint.initialize(args.owner, args.name, args.imageURI, args.description, args.editions);
+        newMint.initialize(args.owner, args.name, args.imageURI, args.description, args.editions, args.royaltyAmountBps);
 
         MintInfo storage mintInfo = mints[newMint];
         mintInfo.owner = args.owner;
