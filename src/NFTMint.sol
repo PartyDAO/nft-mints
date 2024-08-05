@@ -186,7 +186,8 @@ contract NFTMint is Ownable {
         {
             bool feeSuccess = true;
             if (mintInfo.feePerMint > 0) {
-                (feeSuccess,) = mintInfo.feeRecipient.call{ value: mintInfo.feePerMint * modifiedAmount, gas: 100_000 }("");
+                (feeSuccess,) =
+                    mintInfo.feeRecipient.call{ value: mintInfo.feePerMint * modifiedAmount, gas: 100_000 }("");
             }
             bool mintProceedsSuccess = true;
             if (mintInfo.pricePerMint > 0) {
