@@ -80,7 +80,8 @@ contract NFTMintTest is TestBase {
             feeRecipient: payable(address(this)),
             name: "My Token Name",
             imageURI: "image here",
-            description: "This is a description"
+            description: "This is a description",
+            royaltyAmountBps: 150
         });
 
         vm.expectRevert(NFTMint.NFTMint_InvalidExpiration.selector);
@@ -111,7 +112,8 @@ contract NFTMintTest is TestBase {
             feeRecipient: payable(address(this)),
             name: "My Token Name",
             imageURI: "image here",
-            description: "This is a description"
+            description: "This is a description",
+            royaltyAmountBps: 150
         });
 
         vm.expectRevert(NFTMint.NFTMint_InvalidPerWalletLimit.selector);
@@ -142,7 +144,8 @@ contract NFTMintTest is TestBase {
             feeRecipient: payable(address(this)),
             name: "My Token Name",
             imageURI: "image here",
-            description: "This is a description"
+            description: "This is a description",
+            royaltyAmountBps: 150
         });
 
         vm.expectRevert(NFTMint.NFTMint_InvalidMaxMints.selector);
@@ -173,7 +176,8 @@ contract NFTMintTest is TestBase {
             feeRecipient: payable(address(this)),
             name: "My Token Name",
             imageURI: "image here",
-            description: "This is a description"
+            description: "This is a description",
+            royaltyAmountBps: 150
         });
 
         vm.expectRevert(NFTMint.NFTMint_InvalidOwner.selector);
@@ -204,7 +208,8 @@ contract NFTMintTest is TestBase {
             feeRecipient: payable(address(0)),
             name: "My Token Name",
             imageURI: "image here",
-            description: "This is a description"
+            description: "This is a description",
+            royaltyAmountBps: 150
         });
 
         vm.expectRevert(NFTMint.NFTMint_InvalidFeeRecipient.selector);
