@@ -16,6 +16,11 @@ contract NFTMint is Ownable {
     error NFTMint_FailedToTransferFunds();
     error NFTMint_BuyerNotAcceptingERC1155();
     error NFTMint_MintExpired();
+    error NFTMint_InvalidExpiration();
+    error NFTMint_InvalidPerWalletLimit();
+    error NFTMint_InvalidMaxMints();
+    error NFTMint_InvalidOwner();
+    error NFTMint_InvalidFeeRecipient();
 
     event MintCreated(MintERC1155 indexed mint, MintArgs args);
     event OrderPlaced(
@@ -78,6 +83,22 @@ contract NFTMint is Ownable {
      * @param args Arguments for the mint
      */
     function createMint(MintArgs memory args) external returns (MintERC1155) {
+        if (args.mintExpiration < block.timestamp + 1 minutes) {
+            revert NFTMint_InvalidExpiration();
+        }
+        if (args.perWalletLimit == 0) {
+            revert NFTMint_InvalidPerWalletLimit();
+        }
+        if (args.maxMints == 0) {
+            revert NFTMint_InvalidMaxMints();
+        }
+        if (args.owner == address(0)) {
+            revert NFTMint_InvalidOwner();
+        }
+        if (args.feeRecipient == address(0) && args.feePerMint != 0) {
+            revert NFTMint_InvalidFeeRecipient();
+        }
+
         MintERC1155 newMint = MintERC1155(
             Clones.cloneDeterministic(
                 MINT_NFT_LOGIC, keccak256(abi.encodePacked(block.chainid, msg.sender, block.timestamp))
