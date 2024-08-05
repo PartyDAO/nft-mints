@@ -29,9 +29,9 @@ contract NFTMint is Ownable {
     //  Arguments required to create a new mint
     struct MintArgs {
         // Price per mint in wei
-        uint256 pricePerMint;
+        uint96 pricePerMint;
         // Fee per mint in wei
-        uint256 feePerMint;
+        uint96 feePerMint;
         // Address of the owner of the mint
         address payable owner;
         // Address to receive the fee
@@ -41,9 +41,9 @@ contract NFTMint is Ownable {
         // Merkle root for the allowlist
         bytes32 allowlistMerkleRoot;
         // Maximum mints allowed per wallet
-        uint256 perWalletLimit;
+        uint32 perWalletLimit;
         // Maximum number of mints for this mint
-        uint256 maxMints;
+        uint32 maxMints;
         // Array of editions for this mint
         MintERC1155.Edition[] editions;
         // Name of the mint
@@ -57,23 +57,23 @@ contract NFTMint is Ownable {
     // Information about an active mint
     struct MintInfo {
         // Price per mint in wei
-        uint256 pricePerMint;
+        uint96 pricePerMint;
         // Fee per mint in wei
-        uint256 feePerMint;
+        uint96 feePerMint;
+        // Number of mints remaining
+        uint32 remainingMints;
+        // Maximum mints allowed per wallet
+        uint32 perWalletLimit;
+        // Timestamp when the mint expires
+        uint40 mintExpiration;
         // Address of the owner of the mint
         address payable owner;
         // Address to receive the fee
         address payable feeRecipient;
-        // Timestamp when the mint expires
-        uint40 mintExpiration;
-        // Maximum mints allowed per wallet
-        uint256 perWalletLimit;
         // Merkle root for the allowlist
         bytes32 allowlistMerkleRoot;
-        // Number of mints remaining
-        uint256 remainingMints;
         // Mapping of addresses to the number of mints they have made
-        mapping(address => uint256) mintedPerWallet;
+        mapping(address => uint32) mintedPerWallet;
     }
 
     // Information about an order placed for a mint
@@ -84,19 +84,17 @@ contract NFTMint is Ownable {
         address to;
         // Timestamp when the order was placed
         uint40 orderTimestamp;
-        // Number of tokens ordered
-        uint256 amount;
+        uint32 amount;
     }
 
     /// @notice Address of the logic contract for minting NFTs
     address public immutable MINT_NFT_LOGIC;
 
-    /// @notice Mapping of mints to their information
+    /// @notice Next order ID to fill in the `orders` array. All orders before this index have been filled.
+    uint96 public nextOrderIdToFill;
     mapping(MintERC1155 => MintInfo) public mints;
     /// @notice Array of all orders placed. Filled orders are deleted.
     Order[] public orders;
-    /// @notice Next order ID to fill in the `orders` array. All orders before this index have been filled.
-    uint256 public nextOrderIdToFill;
 
     constructor(address owner_) Ownable(owner_) {
         MINT_NFT_LOGIC = address(new MintERC1155(address(this)));
@@ -137,7 +135,7 @@ contract NFTMint is Ownable {
      */
     function order(
         MintERC1155 mint,
-        uint256 amount,
+        uint32 amount,
         string memory comment,
         bytes32[] calldata merkleProof
     )
@@ -157,7 +155,7 @@ contract NFTMint is Ownable {
             revert NFTMint_MintExpired();
         }
 
-        uint256 modifiedAmount = Math.min(amount, mintInfo.remainingMints);
+        uint32 modifiedAmount = uint32(Math.min(amount, mintInfo.remainingMints));
         mintInfo.remainingMints -= modifiedAmount;
         uint256 totalCost = (mintInfo.pricePerMint + mintInfo.feePerMint) * modifiedAmount;
 
@@ -213,7 +211,7 @@ contract NFTMint is Ownable {
      * the owner.
      * @param numOrdersToFill The maximum number of orders to fill. Specify 0 to fill all orders.
      */
-    function fillOrders(uint256 numOrdersToFill) external {
+    function fillOrders(uint96 numOrdersToFill) external {
         uint256 nonce = 0;
         uint256 nextOrderIdToFill_ = nextOrderIdToFill;
         uint256 finalNextOrderToFill =
@@ -275,7 +273,7 @@ contract NFTMint is Ownable {
             nextOrderIdToFill_++;
         }
 
-        nextOrderIdToFill = nextOrderIdToFill_;
+        nextOrderIdToFill = uint96(nextOrderIdToFill_);
     }
 
     function VERSION() external pure returns (string memory) {
