@@ -30,7 +30,7 @@ contract MintERC1155Test is TestBase, LintJSON {
         });
 
         token = MintERC1155(Clones.clone(address(impl)));
-        token.initialize(address(this), "My Token Name", "image here", "This is a token", editions);
+        token.initialize(address(this), "My Token Name", "image here", "This is a token", editions, 150);
 
         assertEq(token.name(), "My Token Name");
         assertEq(token.imageURI(), "image here");
@@ -68,7 +68,7 @@ contract MintERC1155Test is TestBase, LintJSON {
         MintERC1155 newToken = MintERC1155(Clones.clone(address(impl)));
 
         vm.expectRevert(MintERC1155.MintERC1155_PercentChance0.selector);
-        newToken.initialize(address(this), "", "", "", editions);
+        newToken.initialize(address(this), "", "", "", editions, 150);
     }
 
     function test_initialize_totalPercentChanceNot100() external {
@@ -84,7 +84,7 @@ contract MintERC1155Test is TestBase, LintJSON {
         MintERC1155 newToken = MintERC1155(Clones.clone(address(impl)));
 
         vm.expectRevert(MintERC1155.MintERC1155_TotalPercentChanceNot100.selector);
-        newToken.initialize(address(this), "", "", "", editions);
+        newToken.initialize(address(this), "", "", "", editions, 150);
     }
 
     function test_mintBatch_unauthorized() external {
