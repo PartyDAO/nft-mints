@@ -9,7 +9,6 @@ import { MintERC1155 } from "./MintERC1155.sol";
 
 /// @custom:security-contact security@partydao.org
 contract NFTMint is Ownable {
-    error NFTMint_ExceedsMaxOrderAmountPerTx();
     error NFTMint_ExceedsWalletLimit();
     error NFTMint_InsufficientValue();
     error NFTMint_InvalidMerkleProof();
@@ -165,11 +164,8 @@ contract NFTMint is Ownable {
         external
         payable
     {
-        if (amount == 0) {
+        if (amount == 0 || amount > 100) {
             revert NFTMint_InvalidAmount();
-        }
-        if (amount > 100) {
-            revert NFTMint_ExceedsMaxOrderAmountPerTx();
         }
 
         MintInfo storage mintInfo = mints[mint];

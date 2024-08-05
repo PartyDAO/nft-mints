@@ -5,6 +5,7 @@ import { TestBase } from "./util/TestBase.t.sol";
 import { NFTMint } from "src/NFTMint.sol";
 import { MintERC1155 } from "src/MintERC1155.sol";
 import { Vm } from "forge-std/src/Test.sol";
+import { MockFailingRecipient } from "./util/MockFailingRecipient.sol";
 
 contract NFTMintTest is TestBase {
     NFTMint nftMint;
@@ -242,7 +243,7 @@ contract NFTMintTest is TestBase {
         vm.deal(minter, 10 ether);
         vm.prank(minter);
 
-        vm.expectRevert(NFTMint.NFTMint_ExceedsMaxOrderAmountPerTx.selector);
+        vm.expectRevert(NFTMint.NFTMint_InvalidAmount.selector);
         nftMint.order{ value: 1.1 ether }(mint, 101, "", new bytes32[](0));
     }
 
@@ -399,7 +400,6 @@ contract NFTMintTest is TestBase {
         vm.prank(minter);
 
         // Set feeRecipient to an address that will fail to receive funds
-        address payable failingRecipient = payable(address(0xdead));
         NFTMint.MintArgs memory mintArgs = NFTMint.MintArgs({
             mintExpiration: uint40(block.timestamp + 1 days),
             maxMints: 110,
@@ -409,7 +409,7 @@ contract NFTMintTest is TestBase {
             perWalletLimit: 105,
             feePerMint: 0.001 ether,
             owner: payable(address(this)),
-            feeRecipient: failingRecipient,
+            feeRecipient: payable(address(new MockFailingRecipient())),
             name: "My Token Name",
             imageURI: "image here",
             description: "This is a description",
@@ -418,7 +418,7 @@ contract NFTMintTest is TestBase {
 
         MintERC1155 mint = nftMint.createMint(mintArgs);
 
-        // vm.expectRevert(NFTMint.NFTMint_FailedToTransferFunds.selector);
+        vm.expectRevert(NFTMint.NFTMint_FailedToTransferFunds.selector);
         vm.prank(minter);
         nftMint.order{ value: 0.011 ether }(mint, 1, "", new bytes32[](0));
     }
