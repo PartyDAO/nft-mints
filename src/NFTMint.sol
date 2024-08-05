@@ -26,77 +26,72 @@ contract NFTMint is Ownable {
         MintERC1155 indexed mint, uint256 indexed orderId, address indexed to, uint256 amount, uint256[] amounts
     );
 
-    /**
-     * @notice Arguments required to create a new mint
-     * @param pricePerMint Price per mint in wei
-     * @param feePerMint Fee per mint in wei
-     * @param owner Address of the owner of the mint
-     * @param feeRecipient Address to receive the fee
-     * @param mintExpiration Timestamp when the mint expires
-     * @param allowlistMerkleRoot Merkle root for the allowlist
-     * @param perWalletLimit Maximum mints allowed per wallet
-     * @param maxMints Maximum mints allowed in total
-     * @param editions Array of editions for the mint
-     * @param name Name of the mint
-     * @param imageURI URI of the image associated with the mint
-     * @param description Description of the mint
-     */
+    //  Arguments required to create a new mint
     struct MintArgs {
+        // Price per mint in wei
         uint256 pricePerMint;
+        // Fee per mint in wei
         uint256 feePerMint;
+        // Address of the owner of the mint
         address payable owner;
+        // Address to receive the fee
         address payable feeRecipient;
+        // Timestamp when the mint expires
         uint40 mintExpiration;
+        // Merkle root for the allowlist
         bytes32 allowlistMerkleRoot;
+        // Maximum mints allowed per wallet
         uint256 perWalletLimit;
+        // Maximum number of mints for this mint
         uint256 maxMints;
+        // Array of editions for this mint
         MintERC1155.Edition[] editions;
+        // Name of the mint
         string name;
+        // URI of the image for the mint
         string imageURI;
+        // Description of the mint
         string description;
     }
 
-    /**
-     * @notice Information about an active mint
-     * @param pricePerMint Price per mint in wei
-     * @param feePerMint Fee per mint in wei
-     * @param remainingMints Number of mints remaining
-     * @param perWalletLimit Maximum mints allowed per wallet
-     * @param mintExpiration Timestamp when the mint expires
-     * @param owner Address of the owner of the mint
-     * @param feeRecipient Address to receive the fee
-     * @param allowlistMerkleRoot Merkle root for the allowlist
-     * @param mintedPerWallet Mapping of addresses to the number of mints they have made
-     */
+    // Information about an active mint
     struct MintInfo {
+        // Price per mint in wei
         uint256 pricePerMint;
+        // Fee per mint in wei
         uint256 feePerMint;
+        // Address of the owner of the mint
         address payable owner;
+        // Address to receive the fee
         address payable feeRecipient;
+        // Timestamp when the mint expires
         uint40 mintExpiration;
+        // Maximum mints allowed per wallet
         uint256 perWalletLimit;
+        // Merkle root for the allowlist
         bytes32 allowlistMerkleRoot;
+        // Number of mints remaining
         uint256 remainingMints;
+        // Mapping of addresses to the number of mints they have made
         mapping(address => uint256) mintedPerWallet;
     }
 
-    /**
-     * @notice Information about an order placed for a mint
-     * @param mint Address of the ERC1155 contract for the mint
-     * @param to Address to receive the minted tokens
-     * @param orderTimestamp Timestamp when the order was placed
-     * @param amount Number of tokens ordered
-     */
+    // Information about an order placed for a mint
     struct Order {
+        // Address of the ERC1155 contract for the mint
         MintERC1155 mint;
+        // Address to receive the minted tokens
         address to;
+        // Timestamp when the order was placed
         uint40 orderTimestamp;
+        // Number of tokens ordered
         uint256 amount;
     }
 
     /// @notice Address of the logic contract for minting NFTs
     address public immutable MINT_NFT_LOGIC;
 
+    /// @notice Mapping of mints to their information
     mapping(MintERC1155 => MintInfo) public mints;
     /// @notice Array of all orders placed. Filled orders are deleted.
     Order[] public orders;
@@ -190,19 +185,24 @@ contract NFTMint is Ownable {
             Order({ to: msg.sender, mint: mint, orderTimestamp: uint40(block.timestamp), amount: modifiedAmount })
         );
 
-        (bool feeSuccess,) = mintInfo.feeRecipient.call{ value: mintInfo.feePerMint * modifiedAmount, gas: 100_000 }("");
-        bool mintProceedsSuccess = true;
-        if (mintInfo.pricePerMint > 0) {
-            (mintProceedsSuccess,) =
-                mintInfo.owner.call{ value: mintInfo.pricePerMint * modifiedAmount, gas: 100_000 }("");
-        }
-        bool refundSuccess = true;
-        if (msg.value > totalCost) {
-            (refundSuccess,) = payable(msg.sender).call{ value: msg.value - totalCost, gas: 100_000 }("");
-        }
+        {
+            bool feeSuccess = true;
+            if (mintInfo.feePerMint > 0) {
+                (feeSuccess,) = mintInfo.feeRecipient.call{ value: mintInfo.feePerMint * modifiedAmount, gas: 100_000 }("");
+            }
+            bool mintProceedsSuccess = true;
+            if (mintInfo.pricePerMint > 0) {
+                (mintProceedsSuccess,) =
+                    mintInfo.owner.call{ value: mintInfo.pricePerMint * modifiedAmount, gas: 100_000 }("");
+            }
+            bool refundSuccess = true;
+            if (msg.value > totalCost) {
+                (refundSuccess,) = payable(msg.sender).call{ value: msg.value - totalCost, gas: 100_000 }("");
+            }
 
-        if (!feeSuccess || !mintProceedsSuccess || !refundSuccess) {
-            revert NFTMint_FailedToTransferFunds();
+            if (!feeSuccess || !mintProceedsSuccess || !refundSuccess) {
+                revert NFTMint_FailedToTransferFunds();
+            }
         }
 
         emit OrderPlaced(mint, orders.length - 1, msg.sender, modifiedAmount, comment);
