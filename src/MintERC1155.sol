@@ -16,18 +16,27 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
 
     event ContractURIUpdated();
 
+    // Represents an attribute of an edition
     struct Attribute {
+        // The type of the trait (e.g., "color", "size")
         string traitType;
+        // The value of the trait (e.g., "red", "large")
         string value;
     }
 
+    // Represents an edition of tokens
     struct Edition {
+        // The name of the edition
         string name;
+        // The URI of the image associated with the edition
         string imageURI;
+        // The percent chance of minting this edition
         uint256 percentChance;
+        // The attributes associated with this edition
         Attribute[] attributes;
     }
 
+    /// @notice The address that can mint tokens
     address public immutable MINTER;
 
     /// @notice Editions for this contract

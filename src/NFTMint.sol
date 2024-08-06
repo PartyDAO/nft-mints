@@ -9,13 +9,13 @@ import { MintERC1155 } from "./MintERC1155.sol";
 
 /// @custom:security-contact security@partydao.org
 contract NFTMint is Ownable {
-    error NFTMint_ExceedsMaxOrderAmountPerTx();
     error NFTMint_ExceedsWalletLimit();
     error NFTMint_InsufficientValue();
     error NFTMint_InvalidMerkleProof();
     error NFTMint_FailedToTransferFunds();
     error NFTMint_BuyerNotAcceptingERC1155();
     error NFTMint_MintExpired();
+    error NFTMint_InvalidAmount();
     error NFTMint_InvalidExpiration();
     error NFTMint_InvalidPerWalletLimit();
     error NFTMint_InvalidMaxMints();
@@ -30,37 +30,65 @@ contract NFTMint is Ownable {
         MintERC1155 indexed mint, uint256 indexed orderId, address indexed to, uint256 amount, uint256[] amounts
     );
 
+    //  Arguments required to create a new mint
     struct MintArgs {
+        // Price per mint in wei
         uint96 pricePerMint;
+        // Fee per mint in wei
         uint96 feePerMint;
-        uint16 royaltyAmountBps;
+        // Address of the owner of the mint
         address payable owner;
+        // Address to receive the fee
         address payable feeRecipient;
+        // Timestamp when the mint expires
         uint40 mintExpiration;
+        // Merkle root for the allowlist
         bytes32 allowlistMerkleRoot;
+        // Maximum mints allowed per wallet
         uint32 perWalletLimit;
+        // Maximum number of mints for this mint
         uint32 maxMints;
+        // Array of editions for this mint
         MintERC1155.Edition[] editions;
+        // Name of the mint
         string name;
+        // URI of the image for the mint
         string imageURI;
+        // Description of the mint
         string description;
+        // Royalty amount that goes to owner in basis points
+        uint16 royaltyAmountBps;
     }
 
+    // Information about an active mint
     struct MintInfo {
+        // Price per mint in wei
         uint96 pricePerMint;
+        // Fee per mint in wei
         uint96 feePerMint;
+        // Number of mints remaining
         uint32 remainingMints;
+        // Maximum mints allowed per wallet
         uint32 perWalletLimit;
+        // Timestamp when the mint expires
         uint40 mintExpiration;
+        // Address of the owner of the mint
         address payable owner;
+        // Address to receive the fee
         address payable feeRecipient;
+        // Merkle root for the allowlist
         bytes32 allowlistMerkleRoot;
+        // Mapping of addresses to the number of mints they have made
         mapping(address => uint32) mintedPerWallet;
     }
 
+    // Information about an order placed for a mint
     struct Order {
+        // Address of the ERC1155 contract for the mint
         MintERC1155 mint;
+        // Address to receive the minted tokens
         address to;
+        // Timestamp when the order was placed
         uint40 orderTimestamp;
         uint32 amount;
     }
@@ -136,8 +164,8 @@ contract NFTMint is Ownable {
         external
         payable
     {
-        if (amount > 100) {
-            revert NFTMint_ExceedsMaxOrderAmountPerTx();
+        if (amount == 0 || amount > 100) {
+            revert NFTMint_InvalidAmount();
         }
 
         MintInfo storage mintInfo = mints[mint];
@@ -174,16 +202,25 @@ contract NFTMint is Ownable {
             Order({ to: msg.sender, mint: mint, orderTimestamp: uint40(block.timestamp), amount: modifiedAmount })
         );
 
-        (bool feeSuccess,) = mintInfo.feeRecipient.call{ value: mintInfo.feePerMint * modifiedAmount, gas: 100_000 }("");
-        (bool mintProceedsSuccess,) =
-            mintInfo.owner.call{ value: mintInfo.pricePerMint * modifiedAmount, gas: 100_000 }("");
-        bool refundSuccess = true;
-        if (msg.value > totalCost) {
-            (refundSuccess,) = payable(msg.sender).call{ value: msg.value - totalCost, gas: 100_000 }("");
-        }
+        {
+            bool feeSuccess = true;
+            if (mintInfo.feePerMint > 0) {
+                (feeSuccess,) =
+                    mintInfo.feeRecipient.call{ value: mintInfo.feePerMint * modifiedAmount, gas: 100_000 }("");
+            }
+            bool mintProceedsSuccess = true;
+            if (mintInfo.pricePerMint > 0) {
+                (mintProceedsSuccess,) =
+                    mintInfo.owner.call{ value: mintInfo.pricePerMint * modifiedAmount, gas: 100_000 }("");
+            }
+            bool refundSuccess = true;
+            if (msg.value > totalCost) {
+                (refundSuccess,) = payable(msg.sender).call{ value: msg.value - totalCost, gas: 100_000 }("");
+            }
 
-        if (!feeSuccess || !mintProceedsSuccess || !refundSuccess) {
-            revert NFTMint_FailedToTransferFunds();
+            if (!feeSuccess || !mintProceedsSuccess || !refundSuccess) {
+                revert NFTMint_FailedToTransferFunds();
+            }
         }
 
         emit OrderPlaced(mint, orders.length - 1, msg.sender, modifiedAmount, comment);

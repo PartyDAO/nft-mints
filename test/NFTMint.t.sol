@@ -5,6 +5,7 @@ import { TestBase } from "./util/TestBase.t.sol";
 import { NFTMint } from "src/NFTMint.sol";
 import { MintERC1155 } from "src/MintERC1155.sol";
 import { Vm } from "forge-std/src/Test.sol";
+import { MockFailingRecipient } from "./util/MockFailingRecipient.sol";
 
 contract NFTMintTest is TestBase {
     NFTMint nftMint;
@@ -242,7 +243,7 @@ contract NFTMintTest is TestBase {
         vm.deal(minter, 10 ether);
         vm.prank(minter);
 
-        vm.expectRevert(NFTMint.NFTMint_ExceedsMaxOrderAmountPerTx.selector);
+        vm.expectRevert(NFTMint.NFTMint_InvalidAmount.selector);
         nftMint.order{ value: 1.1 ether }(mint, 101, "", new bytes32[](0));
     }
 
@@ -321,6 +322,104 @@ contract NFTMintTest is TestBase {
 
         skip(2 days);
         vm.expectRevert(NFTMint.NFTMint_MintExpired.selector);
+        nftMint.order{ value: 0.011 ether }(mint, 1, "", new bytes32[](0));
+    }
+
+    function test_order_invalidAmount() external {
+        MintERC1155 mint = test_createMint();
+
+        address minter = _randomAddress();
+
+        vm.deal(minter, 10 ether);
+        vm.prank(minter);
+
+        vm.expectRevert(NFTMint.NFTMint_InvalidAmount.selector);
+        nftMint.order{ value: 0.01 ether }(mint, 0, "", new bytes32[](0));
+    }
+
+    function test_order_invalidMerkleProof() external {
+        MintERC1155.Attribute[] memory attributes = new MintERC1155.Attribute[](1);
+        attributes[0] = MintERC1155.Attribute({ traitType: "traitType", value: "value" });
+
+        MintERC1155.Edition[] memory editions = new MintERC1155.Edition[](1);
+        editions[0] = MintERC1155.Edition({
+            name: "Edition 1",
+            imageURI: "https://example.com/image1.png",
+            percentChance: 100,
+            attributes: attributes
+        });
+
+        address minter1 = _randomAddress();
+        address minter2 = _randomAddress();
+
+        vm.deal(minter1, 10 ether);
+        vm.deal(minter2, 10 ether);
+
+        bytes32 allowlistMerkleRoot = keccak256(abi.encodePacked(minter1));
+        NFTMint.MintArgs memory mintArgs = NFTMint.MintArgs({
+            mintExpiration: uint40(block.timestamp + 1 days),
+            maxMints: 110,
+            editions: editions,
+            allowlistMerkleRoot: allowlistMerkleRoot,
+            pricePerMint: 0.01 ether,
+            perWalletLimit: 105,
+            feePerMint: 0.001 ether,
+            owner: payable(address(this)),
+            feeRecipient: payable(address(this)),
+            name: "My Token Name",
+            imageURI: "image here",
+            description: "This is a description",
+            royaltyAmountBps: 150
+        });
+
+        MintERC1155 mint = nftMint.createMint(mintArgs);
+
+        vm.prank(minter1);
+        nftMint.order{ value: 0.011 ether }(mint, 1, "", new bytes32[](0));
+
+        vm.prank(minter2);
+        vm.expectRevert(NFTMint.NFTMint_InvalidMerkleProof.selector);
+        nftMint.order{ value: 0.011 ether }(mint, 1, "", new bytes32[](0));
+    }
+
+    function test_order_failedToTransferFunds() external {
+        MintERC1155.Attribute[] memory attributes = new MintERC1155.Attribute[](1);
+        attributes[0] = MintERC1155.Attribute({ traitType: "traitType", value: "value" });
+
+        MintERC1155.Edition[] memory editions = new MintERC1155.Edition[](1);
+        editions[0] = MintERC1155.Edition({
+            name: "Edition 1",
+            imageURI: "https://example.com/image1.png",
+            percentChance: 100,
+            attributes: attributes
+        });
+
+        address minter = _randomAddress();
+
+        vm.deal(minter, 10 ether);
+        vm.prank(minter);
+
+        // Set feeRecipient to an address that will fail to receive funds
+        NFTMint.MintArgs memory mintArgs = NFTMint.MintArgs({
+            mintExpiration: uint40(block.timestamp + 1 days),
+            maxMints: 110,
+            editions: editions,
+            allowlistMerkleRoot: bytes32(0),
+            pricePerMint: 0.01 ether,
+            perWalletLimit: 105,
+            feePerMint: 0.001 ether,
+            owner: payable(address(this)),
+            feeRecipient: payable(address(new MockFailingRecipient())),
+            name: "My Token Name",
+            imageURI: "image here",
+            description: "This is a description",
+            royaltyAmountBps: 150
+        });
+
+        MintERC1155 mint = nftMint.createMint(mintArgs);
+
+        vm.expectRevert(NFTMint.NFTMint_FailedToTransferFunds.selector);
+        vm.prank(minter);
         nftMint.order{ value: 0.011 ether }(mint, 1, "", new bytes32[](0));
     }
 
