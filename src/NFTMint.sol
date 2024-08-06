@@ -56,7 +56,7 @@ contract NFTMint is Ownable {
         string imageURI;
         // Description of the mint
         string description;
-        // Royalty amount in basis points
+        // Royalty amount that goes to owner in basis points
         uint16 royaltyAmountBps;
     }
 
