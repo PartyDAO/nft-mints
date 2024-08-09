@@ -217,7 +217,7 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
         uint256[] memory idOrAmountArray = new uint256[](1);
         idOrAmountArray[0] = 1;
 
-        (bool success, bytes memory res) = to.staticcall{ gas: 400_000 }(
+        (success, res) = to.staticcall{ gas: 400_000 }(
             abi.encodeCall(
                 IERC1155Receiver.onERC1155BatchReceived, (MINTER, address(0), idOrAmountArray, idOrAmountArray, "")
             )
