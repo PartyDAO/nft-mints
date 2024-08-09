@@ -164,10 +164,6 @@ contract NFTMint is Ownable {
         external
         payable
     {
-        if (amount == 0 || amount > 100) {
-            revert NFTMint_InvalidAmount();
-        }
-
         MintInfo storage mintInfo = mints[mint];
 
         if (mintInfo.mintExpiration < block.timestamp) {
@@ -175,6 +171,10 @@ contract NFTMint is Ownable {
         }
 
         uint32 modifiedAmount = uint32(Math.min(amount, mintInfo.remainingMints));
+        if (modifiedAmount == 0 || modifiedAmount > 100) {
+            revert NFTMint_InvalidAmount();
+        }
+
         mintInfo.remainingMints -= modifiedAmount;
         uint256 totalCost = (mintInfo.pricePerMint + mintInfo.feePerMint) * modifiedAmount;
 
