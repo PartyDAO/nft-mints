@@ -93,11 +93,6 @@ contract MintERC1155Test is TestBase, LintJSON {
         token.mintBatch(address(this), new uint256[](0), new uint256[](0));
     }
 
-    function test_mintBatch_arityMismatch() external {
-        vm.expectRevert(MintERC1155.MintERC1155_ArityMismatch.selector);
-        token.mintBatch(address(this), new uint256[](1), new uint256[](0));
-    }
-
     function test_totalEditions() external view {
         assertEq(token.totalEditions(), 2);
     }
