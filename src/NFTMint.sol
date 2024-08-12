@@ -194,7 +194,7 @@ contract NFTMint is Ownable {
             }
         }
 
-        if (!mint.safeBatchTransferAcceptanceCheckOnMint(msg.sender)) {
+        if (!mint.safeTransferAcceptanceCheckOnMint(msg.sender)) {
             revert NFTMint_BuyerNotAcceptingERC1155();
         }
 
