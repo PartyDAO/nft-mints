@@ -5,6 +5,8 @@ import { TestBase } from "./util/TestBase.t.sol";
 import { MintERC1155 } from "src/MintERC1155.sol";
 import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 import { LintJSON } from "./util/LintJSON.t.sol";
+import { MockERC1155Receiver } from "utils/MockERC1155Receiver.sol";
+import { EmptyContract } from "utils/EmptyContract.sol";
 
 contract MintERC1155Test is TestBase, LintJSON {
     MintERC1155 token;
@@ -114,5 +116,33 @@ contract MintERC1155Test is TestBase, LintJSON {
     function test_uri_lintJSON() external {
         _lintJSON(token.uri(1));
         _lintJSON(token.uri(2));
+    }
+
+    function test_safeTransferAcceptanceCheckOnMint_single() external {
+        // Receiver should accept ERC1155 tokens
+        address receiver = address(new MockERC1155Receiver());
+        assertTrue(token.safeTransferAcceptanceCheckOnMint(receiver));
+
+        // Non-receiver should not accept ERC1155 tokens
+        address nonReceiver = address(new EmptyContract());
+        assertFalse(token.safeTransferAcceptanceCheckOnMint(nonReceiver));
+
+        // EOA should accept ERC1155 tokens
+        address eoa = vm.addr(1);
+        assertTrue(token.safeTransferAcceptanceCheckOnMint(eoa));
+    }
+
+    function test_safeTransferAcceptanceCheckOnMint_batch() external {
+        // Receiver should accept ERC1155 tokens
+        address receiver = address(new MockERC1155Receiver());
+        assertTrue(token.safeTransferAcceptanceCheckOnMint(receiver));
+
+        // Non-receiver should not accept ERC1155 tokens
+        address nonReceiver = address(new EmptyContract());
+        assertFalse(token.safeTransferAcceptanceCheckOnMint(nonReceiver));
+
+        // EOA should accept ERC1155 tokens
+        address eoa = vm.addr(1);
+        assertTrue(token.safeTransferAcceptanceCheckOnMint(eoa));
     }
 }
