@@ -115,6 +115,18 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
         return allEditions;
     }
 
+    /**
+     * @notice Get the percent chance of each edition. Used for filling orders.
+     * @return An ordered array of the percent chance of each edition.
+     */
+    function getPercentChances() external view returns (uint256[] memory) {
+        uint256[] memory percentChances = new uint256[](editions.length);
+        for (uint256 i = 0; i < editions.length; i++) {
+            percentChances[i] = editions[i].percentChance;
+        }
+        return percentChances;
+    }
+
     function uri(uint256 tokenId) public view override returns (string memory) {
         Edition memory edition = editions[tokenId - 1];
 
