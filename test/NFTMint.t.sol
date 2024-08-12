@@ -9,9 +9,10 @@ import { MockFailingRecipient } from "./util/MockFailingRecipient.sol";
 
 contract NFTMintTest is TestBase {
     NFTMint nftMint;
+    address feeRecipient = vm.createWallet("feeRecipient").addr;
 
     function setUp() external {
-        nftMint = new NFTMint(address(this));
+        nftMint = new NFTMint(address(this), feeRecipient);
     }
 
     function test_createMint() public returns (MintERC1155) {
@@ -47,7 +48,6 @@ contract NFTMintTest is TestBase {
             perWalletLimit: 105,
             feePerMint: 0.001 ether,
             owner: payable(address(this)),
-            feeRecipient: payable(address(this)),
             name: "My Token Name",
             imageURI: "image here",
             description: "This is a description",
@@ -78,7 +78,6 @@ contract NFTMintTest is TestBase {
             perWalletLimit: 105,
             feePerMint: 0.001 ether,
             owner: payable(address(this)),
-            feeRecipient: payable(address(this)),
             name: "My Token Name",
             imageURI: "image here",
             description: "This is a description",
@@ -110,7 +109,6 @@ contract NFTMintTest is TestBase {
             perWalletLimit: 0,
             feePerMint: 0.001 ether,
             owner: payable(address(this)),
-            feeRecipient: payable(address(this)),
             name: "My Token Name",
             imageURI: "image here",
             description: "This is a description",
@@ -142,7 +140,6 @@ contract NFTMintTest is TestBase {
             perWalletLimit: 1,
             feePerMint: 0.001 ether,
             owner: payable(address(this)),
-            feeRecipient: payable(address(this)),
             name: "My Token Name",
             imageURI: "image here",
             description: "This is a description",
@@ -174,7 +171,6 @@ contract NFTMintTest is TestBase {
             perWalletLimit: 1,
             feePerMint: 0.001 ether,
             owner: payable(address(0)),
-            feeRecipient: payable(address(this)),
             name: "My Token Name",
             imageURI: "image here",
             description: "This is a description",
@@ -182,38 +178,6 @@ contract NFTMintTest is TestBase {
         });
 
         vm.expectRevert(NFTMint.NFTMint_InvalidOwner.selector);
-        nftMint.createMint(mintArgs);
-    }
-
-    function test_createMint_invalidFeeRecipient() external {
-        MintERC1155.Attribute[] memory attributes = new MintERC1155.Attribute[](1);
-        attributes[0] = MintERC1155.Attribute({ traitType: "traitType", value: "value" });
-
-        MintERC1155.Edition[] memory editions = new MintERC1155.Edition[](1);
-        editions[0] = MintERC1155.Edition({
-            name: "Edition 1",
-            imageURI: "https://example.com/image1.png",
-            percentChance: 100,
-            attributes: attributes
-        });
-
-        NFTMint.MintArgs memory mintArgs = NFTMint.MintArgs({
-            mintExpiration: uint40(block.timestamp + 1 days),
-            maxMints: 1,
-            editions: editions,
-            allowlistMerkleRoot: bytes32(0),
-            pricePerMint: 0.01 ether,
-            perWalletLimit: 1,
-            feePerMint: 0.001 ether,
-            owner: payable(address(this)),
-            feeRecipient: payable(address(0)),
-            name: "My Token Name",
-            imageURI: "image here",
-            description: "This is a description",
-            royaltyAmountBps: 150
-        });
-
-        vm.expectRevert(NFTMint.NFTMint_InvalidFeeRecipient.selector);
         nftMint.createMint(mintArgs);
     }
 
@@ -365,7 +329,6 @@ contract NFTMintTest is TestBase {
             perWalletLimit: 105,
             feePerMint: 0.001 ether,
             owner: payable(address(this)),
-            feeRecipient: payable(address(this)),
             name: "My Token Name",
             imageURI: "image here",
             description: "This is a description",
@@ -394,7 +357,7 @@ contract NFTMintTest is TestBase {
             attributes: attributes
         });
 
-        address minter = _randomAddress();
+        address minter = address(new MockFailingRecipient());
 
         vm.deal(minter, 10 ether);
         vm.prank(minter);
@@ -409,7 +372,6 @@ contract NFTMintTest is TestBase {
             perWalletLimit: 105,
             feePerMint: 0.001 ether,
             owner: payable(address(this)),
-            feeRecipient: payable(address(new MockFailingRecipient())),
             name: "My Token Name",
             imageURI: "image here",
             description: "This is a description",
@@ -420,7 +382,7 @@ contract NFTMintTest is TestBase {
 
         vm.expectRevert(NFTMint.NFTMint_FailedToTransferFunds.selector);
         vm.prank(minter);
-        nftMint.order{ value: 0.011 ether }(mint, 1, "", new bytes32[](0));
+        nftMint.order{ value: 0.012 ether }(mint, 1, "", new bytes32[](0));
     }
 
     event OrderFilled(
