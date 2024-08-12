@@ -13,6 +13,7 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
     error MintERC1155_ArityMismatch();
     error MintERC1155_TotalPercentChanceNot100();
     error MintERC1155_PercentChance0();
+    error MintERC1155_ExcessEditions();
 
     event ContractURIUpdated();
 
@@ -65,6 +66,10 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
         initializer
     {
         {
+            if (editions_.length > 25) {
+                revert MintERC1155_ExcessEditions();
+            }
+
             uint256 totalPercentChance = 0;
             for (uint256 i = 0; i < editions_.length; i++) {
                 editions.push();
