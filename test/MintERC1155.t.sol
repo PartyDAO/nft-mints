@@ -39,6 +39,20 @@ contract MintERC1155Test is TestBase, LintJSON {
 
     event ContractURIUpdated();
 
+    function test_initialize_excessEditions() external {
+        MintERC1155 impl = new MintERC1155(address(this));
+
+        MintERC1155.Attribute[] memory attributes = new MintERC1155.Attribute[](1);
+        attributes[0] = MintERC1155.Attribute({ traitType: "traitType", value: "value" });
+
+        MintERC1155.Edition[] memory editions = new MintERC1155.Edition[](26);
+
+        token = MintERC1155(Clones.clone(address(impl)));
+
+        vm.expectRevert(MintERC1155.MintERC1155_ExcessEditions.selector);
+        token.initialize(address(this), "My Token Name", "image here", "This is a token", editions, 150);
+    }
+
     function test_setContractInfo() external {
         vm.expectEmit(true, true, true, true);
         emit ContractURIUpdated();
