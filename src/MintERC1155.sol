@@ -10,9 +10,9 @@ import { LibString } from "solady/src/utils/LibString.sol";
 /// @custom:security-contact security@partydao.org
 contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeable {
     error MintERC1155_Unauthorized();
-    error MintERC1155_ArityMismatch();
     error MintERC1155_TotalPercentChanceNot100();
     error MintERC1155_PercentChance0();
+    error MintERC1155_ExcessEditions();
 
     event ContractURIUpdated();
 
@@ -65,6 +65,10 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
         initializer
     {
         {
+            if (editions_.length > 25) {
+                revert MintERC1155_ExcessEditions();
+            }
+
             uint256 totalPercentChance = 0;
             for (uint256 i = 0; i < editions_.length; i++) {
                 editions.push();
@@ -97,9 +101,6 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
         if (msg.sender != MINTER) {
             revert MintERC1155_Unauthorized();
         }
-        if (ids.length != amounts.length) {
-            revert MintERC1155_ArityMismatch();
-        }
         _mintBatch(to, ids, amounts, "");
     }
 
@@ -113,6 +114,18 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
             allEditions[i] = editions[i];
         }
         return allEditions;
+    }
+
+    /**
+     * @notice Get the percent chance of each edition. Used for filling orders.
+     * @return An ordered array of the percent chance of each edition.
+     */
+    function getPercentChances() external view returns (uint256[] memory) {
+        uint256[] memory percentChances = new uint256[](editions.length);
+        for (uint256 i = 0; i < editions.length; i++) {
+            percentChances[i] = editions[i].percentChance;
+        }
+        return percentChances;
     }
 
     function uri(uint256 tokenId) public view override returns (string memory) {
@@ -153,7 +166,9 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
         return json;
     }
 
-    function supportsInterface(bytes4 interfaceId)
+    function supportsInterface(
+        bytes4 interfaceId
+    )
         public
         view
         virtual
@@ -199,25 +214,38 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
      * @notice Check if the given address can receive tokens from this contract
      * @param to Address to check if receiving tokens is safe
      */
-    function safeBatchTransferAcceptanceCheckOnMint(address to) external view returns (bool) {
+    function safeTransferAcceptanceCheckOnMint(address to) external view returns (bool) {
+        if (to.code.length == 0) return true;
+
+        (bool success, bytes memory res) = to.staticcall{ gas: 400_000 }(
+            abi.encodeCall(IERC1155Receiver.onERC1155Received, (MINTER, address(0), 1, 1, ""))
+        );
+        if (success) {
+            bytes4 response = abi.decode(res, (bytes4));
+            if (response != IERC1155Receiver.onERC1155Received.selector) {
+                return false;
+            }
+        } else {
+            return false;
+        }
+
         uint256[] memory idOrAmountArray = new uint256[](1);
         idOrAmountArray[0] = 1;
 
-        bytes memory callData = abi.encodeCall(
-            IERC1155Receiver.onERC1155BatchReceived, (MINTER, address(0), idOrAmountArray, idOrAmountArray, "")
+        (success, res) = to.staticcall{ gas: 400_000 }(
+            abi.encodeCall(
+                IERC1155Receiver.onERC1155BatchReceived, (MINTER, address(0), idOrAmountArray, idOrAmountArray, "")
+            )
         );
-
-        if (to.code.length > 0) {
-            (bool success, bytes memory res) = to.staticcall{ gas: 400_000 }(callData);
-            if (success) {
-                bytes4 response = abi.decode(res, (bytes4));
-                if (response != IERC1155Receiver.onERC1155BatchReceived.selector) {
-                    return false;
-                }
-            } else {
+        if (success) {
+            bytes4 response = abi.decode(res, (bytes4));
+            if (response != IERC1155Receiver.onERC1155BatchReceived.selector) {
                 return false;
             }
+        } else {
+            return false;
         }
+
         return true;
     }
 

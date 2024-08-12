@@ -20,8 +20,8 @@ contract NFTMint is Ownable {
     error NFTMint_InvalidPerWalletLimit();
     error NFTMint_InvalidMaxMints();
     error NFTMint_InvalidOwner();
-    error NFTMint_InvalidFeeRecipient();
     error NFTMint_InsufficientGas();
+    error NFTMint_InsufficientFee();
 
     event MintCreated(MintERC1155 indexed mint, MintArgs args);
     event OrderPlaced(
@@ -39,8 +39,6 @@ contract NFTMint is Ownable {
         uint96 feePerMint;
         // Address of the owner of the mint
         address payable owner;
-        // Address to receive the fee
-        address payable feeRecipient;
         // Timestamp when the mint expires
         uint40 mintExpiration;
         // Merkle root for the allowlist
@@ -73,10 +71,6 @@ contract NFTMint is Ownable {
         uint32 perWalletLimit;
         // Timestamp when the mint expires
         uint40 mintExpiration;
-        // Address of the owner of the mint
-        address payable owner;
-        // Address to receive the fee
-        address payable feeRecipient;
         // Merkle root for the allowlist
         bytes32 allowlistMerkleRoot;
         // Mapping of addresses to the number of mints they have made
@@ -99,12 +93,22 @@ contract NFTMint is Ownable {
 
     /// @notice Next order ID to fill in the `orders` array. All orders before this index have been filled.
     uint96 public nextOrderIdToFill;
+    /// @notice Next nonce to use for random number generation
+    uint96 private _nextNonce;
+    /// @notice Mapping of mint to mint information
     mapping(MintERC1155 => MintInfo) public mints;
     /// @notice Array of all orders placed. Filled orders are deleted.
     Order[] public orders;
 
-    constructor(address owner_) Ownable(owner_) {
+    /// @notice Address of the mint fee recipient
+    address payable public immutable FEE_RECIPIENT;
+
+    /// @notice Minimum fee per mint (approximately $0.05)
+    uint96 public constant MIN_FEE_PER_MINT = 0.00002 ether;
+
+    constructor(address owner_, address feeRecipient_) Ownable(owner_) {
         MINT_NFT_LOGIC = address(new MintERC1155(address(this)));
+        FEE_RECIPIENT = payable(feeRecipient_);
     }
 
     /**
@@ -124,8 +128,8 @@ contract NFTMint is Ownable {
         if (args.owner == address(0)) {
             revert NFTMint_InvalidOwner();
         }
-        if (args.feeRecipient == address(0) && args.feePerMint != 0) {
-            revert NFTMint_InvalidFeeRecipient();
+        if (args.feePerMint < MIN_FEE_PER_MINT) {
+            revert NFTMint_InsufficientFee();
         }
 
         MintERC1155 newMint = MintERC1155(
@@ -136,11 +140,9 @@ contract NFTMint is Ownable {
         newMint.initialize(args.owner, args.name, args.imageURI, args.description, args.editions, args.royaltyAmountBps);
 
         MintInfo storage mintInfo = mints[newMint];
-        mintInfo.owner = args.owner;
         mintInfo.remainingMints = args.maxMints;
         mintInfo.pricePerMint = args.pricePerMint;
         mintInfo.feePerMint = args.feePerMint;
-        mintInfo.feeRecipient = args.feeRecipient;
         mintInfo.perWalletLimit = args.perWalletLimit;
         mintInfo.allowlistMerkleRoot = args.allowlistMerkleRoot;
         mintInfo.mintExpiration = args.mintExpiration;
@@ -165,10 +167,6 @@ contract NFTMint is Ownable {
         external
         payable
     {
-        if (amount == 0 || amount > 100) {
-            revert NFTMint_InvalidAmount();
-        }
-
         MintInfo storage mintInfo = mints[mint];
 
         if (mintInfo.mintExpiration < block.timestamp) {
@@ -176,6 +174,10 @@ contract NFTMint is Ownable {
         }
 
         uint32 modifiedAmount = uint32(Math.min(amount, mintInfo.remainingMints));
+        if (modifiedAmount == 0 || modifiedAmount > 100) {
+            revert NFTMint_InvalidAmount();
+        }
+
         mintInfo.remainingMints -= modifiedAmount;
         uint256 totalCost = (mintInfo.pricePerMint + mintInfo.feePerMint) * modifiedAmount;
 
@@ -195,7 +197,7 @@ contract NFTMint is Ownable {
             }
         }
 
-        if (!mint.safeBatchTransferAcceptanceCheckOnMint(msg.sender)) {
+        if (!mint.safeTransferAcceptanceCheckOnMint(msg.sender)) {
             revert NFTMint_BuyerNotAcceptingERC1155();
         }
 
@@ -204,15 +206,12 @@ contract NFTMint is Ownable {
         );
 
         {
-            bool feeSuccess = true;
-            if (mintInfo.feePerMint > 0) {
-                (feeSuccess,) =
-                    mintInfo.feeRecipient.call{ value: mintInfo.feePerMint * modifiedAmount, gas: 100_000 }("");
-            }
+            (bool feeSuccess,) = FEE_RECIPIENT.call{ value: mintInfo.feePerMint * modifiedAmount, gas: 100_000 }("");
+
             bool mintProceedsSuccess = true;
             if (mintInfo.pricePerMint > 0) {
                 (mintProceedsSuccess,) =
-                    mintInfo.owner.call{ value: mintInfo.pricePerMint * modifiedAmount, gas: 100_000 }("");
+                    mint.owner().call{ value: mintInfo.pricePerMint * modifiedAmount, gas: 100_000 }("");
             }
             bool refundSuccess = true;
             if (msg.value > totalCost) {
@@ -233,13 +232,13 @@ contract NFTMint is Ownable {
      * @param numOrdersToFill The maximum number of orders to fill. Specify 0 to fill all orders.
      */
     function fillOrders(uint96 numOrdersToFill) external {
-        uint256 nonce = 0;
+        uint256 nonce = _nextNonce;
         uint256 nextOrderIdToFill_ = nextOrderIdToFill;
         uint256 finalNextOrderToFill =
             numOrdersToFill == 0 ? orders.length : Math.min(orders.length, nextOrderIdToFill_ + numOrdersToFill);
 
         while (nextOrderIdToFill_ < finalNextOrderToFill) {
-            Order storage currentOrder = orders[nextOrderIdToFill_];
+            Order memory currentOrder = orders[nextOrderIdToFill_];
             if (msg.sender != owner() && currentOrder.orderTimestamp + 1 hours > block.timestamp) {
                 // Only the owner can fill orders that are less than 1 hour old
                 break;
@@ -248,12 +247,12 @@ contract NFTMint is Ownable {
                 // Don't fill orders in the same block to ensure there is randomness
                 break;
             }
-            MintERC1155.Edition[] memory editions = currentOrder.mint.getAllEditions();
+            uint256[] memory percentChances = currentOrder.mint.getPercentChances();
 
-            uint256[] memory ids = new uint256[](editions.length);
-            uint256[] memory amounts = new uint256[](editions.length);
+            uint256[] memory ids = new uint256[](percentChances.length);
+            uint256[] memory amounts = new uint256[](percentChances.length);
 
-            for (uint256 i = 0; i < editions.length; i++) {
+            for (uint256 i = 0; i < percentChances.length; i++) {
                 ids[i] = i + 1;
             }
 
@@ -261,8 +260,8 @@ contract NFTMint is Ownable {
                 uint256 roll = uint256(keccak256(abi.encodePacked(nonce++, blockhash(block.number - 1)))) % 100;
 
                 uint256 cumulativeChance = 0;
-                for (uint256 j = 0; j < editions.length; j++) {
-                    cumulativeChance += editions[j].percentChance;
+                for (uint256 j = 0; j < percentChances.length; j++) {
+                    cumulativeChance += percentChances[j];
                     if (roll < cumulativeChance) {
                         amounts[j]++;
                         break;
@@ -273,7 +272,7 @@ contract NFTMint is Ownable {
             emit OrderFilled(currentOrder.mint, nextOrderIdToFill_, currentOrder.to, currentOrder.amount, amounts);
 
             uint256 numNonZero = 0;
-            for (uint256 i = 0; i < editions.length; i++) {
+            for (uint256 i = 0; i < percentChances.length; i++) {
                 if (amounts[i] != 0) {
                     if (numNonZero < i) {
                         ids[numNonZero] = ids[i];
@@ -288,13 +287,16 @@ contract NFTMint is Ownable {
                 mstore(amounts, numNonZero)
             }
 
-            if (gasleft() * 63 / 64 < 1_000_000) revert NFTMint_InsufficientGas();
-            try currentOrder.mint.mintBatch{ gas: 1_000_000 }(currentOrder.to, ids, amounts) { } catch { }
             delete orders[nextOrderIdToFill_];
             nextOrderIdToFill_++;
+
+            if (gasleft() * 63 / 64 < 1_000_000) revert NFTMint_InsufficientGas();
+            // If the mint fails with 1_000_000 gas, the order is still marked as filled.
+            try currentOrder.mint.mintBatch{ gas: 1_000_000 }(currentOrder.to, ids, amounts) { } catch { }
         }
 
         nextOrderIdToFill = uint96(nextOrderIdToFill_);
+        _nextNonce = uint96(nonce++);
     }
 
     function VERSION() external pure returns (string memory) {
