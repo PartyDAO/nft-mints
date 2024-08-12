@@ -238,7 +238,7 @@ contract NFTMint is Ownable {
             numOrdersToFill == 0 ? orders.length : Math.min(orders.length, nextOrderIdToFill_ + numOrdersToFill);
 
         while (nextOrderIdToFill_ < finalNextOrderToFill) {
-            Order storage currentOrder = orders[nextOrderIdToFill_];
+            Order memory currentOrder = orders[nextOrderIdToFill_];
             if (msg.sender != owner() && currentOrder.orderTimestamp + 1 hours > block.timestamp) {
                 // Only the owner can fill orders that are less than 1 hour old
                 break;
@@ -287,10 +287,10 @@ contract NFTMint is Ownable {
                 mstore(amounts, numNonZero)
             }
 
-            // If the mint fails with 500_000 gas, the order is still marked as filled.
-            try currentOrder.mint.mintBatch{ gas: 500_000 }(currentOrder.to, ids, amounts) { } catch { }
             delete orders[nextOrderIdToFill_];
             nextOrderIdToFill_++;
+            // If the mint fails with 500_000 gas, the order is still marked as filled.
+            try currentOrder.mint.mintBatch{ gas: 500_000 }(currentOrder.to, ids, amounts) { } catch { }
         }
 
         nextOrderIdToFill = uint96(nextOrderIdToFill_);
