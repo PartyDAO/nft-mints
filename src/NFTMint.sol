@@ -256,7 +256,7 @@ contract NFTMint is Ownable {
             }
 
             for (uint256 i = 0; i < currentOrder.amount; i++) {
-                uint256 roll = uint256(keccak256(abi.encodePacked(nonce++, blockhash(block.number - 1)))) % 100;
+                uint256 roll = uint256(keccak256(abi.encodePacked(nonce++, blockhash(block.number - 1)))) % 100 + 1;
 
                 uint256 cumulativeChance = 0;
                 for (uint256 j = 0; j < percentChances.length; j++) {
