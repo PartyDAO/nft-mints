@@ -20,7 +20,7 @@ contract NFTMint is Ownable {
     error NFTMint_InvalidPerWalletLimit();
     error NFTMint_InvalidMaxMints();
     error NFTMint_InvalidOwner();
-    error NFTMint_InvalidFeeRecipient();
+    error NFTMint_InsufficientFee();
 
     event MintCreated(MintERC1155 indexed mint, MintArgs args);
     event OrderPlaced(
@@ -38,8 +38,6 @@ contract NFTMint is Ownable {
         uint96 feePerMint;
         // Address of the owner of the mint
         address payable owner;
-        // Address to receive the fee
-        address payable feeRecipient;
         // Timestamp when the mint expires
         uint40 mintExpiration;
         // Merkle root for the allowlist
@@ -72,8 +70,6 @@ contract NFTMint is Ownable {
         uint32 perWalletLimit;
         // Timestamp when the mint expires
         uint40 mintExpiration;
-        // Address to receive the fee
-        address payable feeRecipient;
         // Merkle root for the allowlist
         bytes32 allowlistMerkleRoot;
         // Mapping of addresses to the number of mints they have made
@@ -103,8 +99,15 @@ contract NFTMint is Ownable {
     /// @notice Array of all orders placed. Filled orders are deleted.
     Order[] public orders;
 
-    constructor(address owner_) Ownable(owner_) {
+    /// @notice Address of the mint fee recipient
+    address payable public immutable FEE_RECIPIENT;
+
+    /// @notice Minimum fee per mint (approximately $0.05)
+    uint96 public constant MIN_FEE_PER_MINT = 0.00002 ether;
+
+    constructor(address owner_, address feeRecipient_) Ownable(owner_) {
         MINT_NFT_LOGIC = address(new MintERC1155(address(this)));
+        FEE_RECIPIENT = payable(feeRecipient_);
     }
 
     /**
@@ -124,8 +127,8 @@ contract NFTMint is Ownable {
         if (args.owner == address(0)) {
             revert NFTMint_InvalidOwner();
         }
-        if (args.feeRecipient == address(0) && args.feePerMint != 0) {
-            revert NFTMint_InvalidFeeRecipient();
+        if (args.feePerMint < MIN_FEE_PER_MINT) {
+            revert NFTMint_InsufficientFee();
         }
 
         MintERC1155 newMint = MintERC1155(
@@ -139,7 +142,6 @@ contract NFTMint is Ownable {
         mintInfo.remainingMints = args.maxMints;
         mintInfo.pricePerMint = args.pricePerMint;
         mintInfo.feePerMint = args.feePerMint;
-        mintInfo.feeRecipient = args.feeRecipient;
         mintInfo.perWalletLimit = args.perWalletLimit;
         mintInfo.allowlistMerkleRoot = args.allowlistMerkleRoot;
         mintInfo.mintExpiration = args.mintExpiration;
@@ -203,11 +205,8 @@ contract NFTMint is Ownable {
         );
 
         {
-            bool feeSuccess = true;
-            if (mintInfo.feePerMint > 0) {
-                (feeSuccess,) =
-                    mintInfo.feeRecipient.call{ value: mintInfo.feePerMint * modifiedAmount, gas: 100_000 }("");
-            }
+            (bool feeSuccess,) = FEE_RECIPIENT.call{ value: mintInfo.feePerMint * modifiedAmount, gas: 100_000 }("");
+
             bool mintProceedsSuccess = true;
             if (mintInfo.pricePerMint > 0) {
                 (mintProceedsSuccess,) =
