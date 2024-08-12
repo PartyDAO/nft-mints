@@ -20,7 +20,6 @@ contract NFTMint is Ownable {
     error NFTMint_InvalidPerWalletLimit();
     error NFTMint_InvalidMaxMints();
     error NFTMint_InvalidOwner();
-    error NFTMint_InvalidFeeRecipient();
     error NFTMint_InsufficientFee();
 
     event MintCreated(MintERC1155 indexed mint, MintArgs args);
