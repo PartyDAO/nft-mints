@@ -288,11 +288,8 @@ contract NFTMint is Ownable {
                 mstore(amounts, numNonZero)
             }
 
-            // If the mint fails with 500_000 gas, the order is still marked as filled.
-            uint256 gasReserved = gasleft() / 64;
-            try currentOrder.mint.mintBatch{ gas: 500_000 }(currentOrder.to, ids, amounts) { } catch { }
-            // If the gas left is less than the gas reserved (with small buffer), call failed due to insufficient gas.
-            if (gasleft() < gasReserved + 100) revert NFTMint_InsufficientGas();
+            if (gasleft() * 63 / 64 < 1_000_000) revert NFTMint_InsufficientGas();
+            try currentOrder.mint.mintBatch{ gas: 1_000_000 }(currentOrder.to, ids, amounts) { } catch { }
             delete orders[nextOrderIdToFill_];
             nextOrderIdToFill_++;
         }
