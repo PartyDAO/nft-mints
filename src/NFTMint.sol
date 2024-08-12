@@ -96,6 +96,9 @@ contract NFTMint is Ownable {
 
     /// @notice Next order ID to fill in the `orders` array. All orders before this index have been filled.
     uint96 public nextOrderIdToFill;
+    /// @notice Next nonce to use for random number generation
+    uint96 private _nextNonce;
+    /// @notice Mapping of mint to mint information
     mapping(MintERC1155 => MintInfo) public mints;
     /// @notice Array of all orders placed. Filled orders are deleted.
     Order[] public orders;
@@ -229,7 +232,7 @@ contract NFTMint is Ownable {
      * @param numOrdersToFill The maximum number of orders to fill. Specify 0 to fill all orders.
      */
     function fillOrders(uint96 numOrdersToFill) external {
-        uint256 nonce = 0;
+        uint256 nonce = _nextNonce;
         uint256 nextOrderIdToFill_ = nextOrderIdToFill;
         uint256 finalNextOrderToFill =
             numOrdersToFill == 0 ? orders.length : Math.min(orders.length, nextOrderIdToFill_ + numOrdersToFill);
@@ -291,6 +294,7 @@ contract NFTMint is Ownable {
         }
 
         nextOrderIdToFill = uint96(nextOrderIdToFill_);
+        _nextNonce = uint96(nonce++);
     }
 
     function VERSION() external pure returns (string memory) {
