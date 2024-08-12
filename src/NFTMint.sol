@@ -20,6 +20,7 @@ contract NFTMint is Ownable {
     error NFTMint_InvalidPerWalletLimit();
     error NFTMint_InvalidMaxMints();
     error NFTMint_InvalidOwner();
+    error NFTMint_InsufficientGas();
     error NFTMint_InsufficientFee();
 
     event MintCreated(MintERC1155 indexed mint, MintArgs args);
@@ -288,8 +289,10 @@ contract NFTMint is Ownable {
 
             delete orders[nextOrderIdToFill_];
             nextOrderIdToFill_++;
-            // If the mint fails with 500_000 gas, the order is still marked as filled.
-            try currentOrder.mint.mintBatch{ gas: 500_000 }(currentOrder.to, ids, amounts) { } catch { }
+
+            if (gasleft() * 63 / 64 < 1_000_000) revert NFTMint_InsufficientGas();
+            // If the mint fails with 1_000_000 gas, the order is still marked as filled.
+            try currentOrder.mint.mintBatch{ gas: 1_000_000 }(currentOrder.to, ids, amounts) { } catch { }
         }
 
         nextOrderIdToFill = uint96(nextOrderIdToFill_);
