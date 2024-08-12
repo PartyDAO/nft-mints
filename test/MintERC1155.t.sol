@@ -5,8 +5,8 @@ import { TestBase } from "./util/TestBase.t.sol";
 import { MintERC1155 } from "src/MintERC1155.sol";
 import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 import { LintJSON } from "./util/LintJSON.t.sol";
-import { MockERC1155Receiver } from "utils/MockERC1155Receiver.sol";
-import { EmptyContract } from "utils/EmptyContract.sol";
+import { MockERC1155Receiver } from "./mock/MockERC1155Receiver.t.sol";
+import { EmptyContract } from "./mock/EmptyContract.t.sol";
 
 contract MintERC1155Test is TestBase, LintJSON {
     MintERC1155 token;
@@ -14,8 +14,9 @@ contract MintERC1155Test is TestBase, LintJSON {
     function setUp() external {
         MintERC1155 impl = new MintERC1155(address(this));
 
-        MintERC1155.Attribute[] memory attributes = new MintERC1155.Attribute[](1);
+        MintERC1155.Attribute[] memory attributes = new MintERC1155.Attribute[](2);
         attributes[0] = MintERC1155.Attribute({ traitType: "traitType", value: "value" });
+        attributes[1] = MintERC1155.Attribute({ traitType: "traitType2", value: "value2" });
 
         MintERC1155.Edition[] memory editions = new MintERC1155.Edition[](2);
         editions[0] = MintERC1155.Edition({

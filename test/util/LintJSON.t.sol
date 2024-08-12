@@ -24,7 +24,7 @@ contract LintJSON is Test {
         string[] memory inputs = new string[](4);
         inputs[0] = "npx";
         inputs[1] = "ts-node";
-        inputs[2] = "./utils/lint-json.ts";
+        inputs[2] = "./util/lint-json.ts";
         inputs[3] = filePath;
         bytes memory ffiResp = vm.ffi(inputs);
 
