@@ -247,12 +247,12 @@ contract NFTMint is Ownable {
                 // Don't fill orders in the same block to ensure there is randomness
                 break;
             }
-            MintERC1155.Edition[] memory editions = currentOrder.mint.getAllEditions();
+            uint256[] memory percentChances = currentOrder.mint.getPercentChances();
 
-            uint256[] memory ids = new uint256[](editions.length);
-            uint256[] memory amounts = new uint256[](editions.length);
+            uint256[] memory ids = new uint256[](percentChances.length);
+            uint256[] memory amounts = new uint256[](percentChances.length);
 
-            for (uint256 i = 0; i < editions.length; i++) {
+            for (uint256 i = 0; i < percentChances.length; i++) {
                 ids[i] = i + 1;
             }
 
@@ -260,8 +260,8 @@ contract NFTMint is Ownable {
                 uint256 roll = uint256(keccak256(abi.encodePacked(nonce++, blockhash(block.number - 1)))) % 100;
 
                 uint256 cumulativeChance = 0;
-                for (uint256 j = 0; j < editions.length; j++) {
-                    cumulativeChance += editions[j].percentChance;
+                for (uint256 j = 0; j < percentChances.length; j++) {
+                    cumulativeChance += percentChances[j];
                     if (roll < cumulativeChance) {
                         amounts[j]++;
                         break;
@@ -272,7 +272,7 @@ contract NFTMint is Ownable {
             emit OrderFilled(currentOrder.mint, nextOrderIdToFill_, currentOrder.to, currentOrder.amount, amounts);
 
             uint256 numNonZero = 0;
-            for (uint256 i = 0; i < editions.length; i++) {
+            for (uint256 i = 0; i < percentChances.length; i++) {
                 if (amounts[i] != 0) {
                     if (numNonZero < i) {
                         ids[numNonZero] = ids[i];
