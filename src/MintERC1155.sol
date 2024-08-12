@@ -10,7 +10,6 @@ import { LibString } from "solady/src/utils/LibString.sol";
 /// @custom:security-contact security@partydao.org
 contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeable {
     error MintERC1155_Unauthorized();
-    error MintERC1155_ArityMismatch();
     error MintERC1155_TotalPercentChanceNot100();
     error MintERC1155_PercentChance0();
 
@@ -96,9 +95,6 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
     function mintBatch(address to, uint256[] memory ids, uint256[] memory amounts) external {
         if (msg.sender != MINTER) {
             revert MintERC1155_Unauthorized();
-        }
-        if (ids.length != amounts.length) {
-            revert MintERC1155_ArityMismatch();
         }
         _mintBatch(to, ids, amounts, "");
     }
