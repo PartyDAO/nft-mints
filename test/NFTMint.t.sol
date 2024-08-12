@@ -448,5 +448,21 @@ contract NFTMintTest is TestBase {
         assertEq(nftMint.nextOrderIdToFill(), 1);
     }
 
+    function test_fillOrders_insufficientGas() external {
+        MintERC1155 mint = test_createMint();
+
+        address minter = _randomAddress();
+        vm.deal(minter, 10 ether);
+        vm.prank(minter);
+        nftMint.order{ value: 1.1 ether }(mint, 100, "Test order", new bytes32[](0));
+
+        skip(1 days);
+        // Simulate low gas scenario
+        vm.startPrank(address(this));
+        vm.expectRevert(NFTMint.NFTMint_InsufficientGas.selector);
+        nftMint.fillOrders{ gas: 500_000 }(0);
+        vm.stopPrank();
+    }
+
     receive() external payable { }
 }
