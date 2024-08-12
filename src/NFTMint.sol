@@ -72,8 +72,6 @@ contract NFTMint is Ownable {
         uint32 perWalletLimit;
         // Timestamp when the mint expires
         uint40 mintExpiration;
-        // Address of the owner of the mint
-        address payable owner;
         // Address to receive the fee
         address payable feeRecipient;
         // Merkle root for the allowlist
@@ -135,7 +133,6 @@ contract NFTMint is Ownable {
         newMint.initialize(args.owner, args.name, args.imageURI, args.description, args.editions, args.royaltyAmountBps);
 
         MintInfo storage mintInfo = mints[newMint];
-        mintInfo.owner = args.owner;
         mintInfo.remainingMints = args.maxMints;
         mintInfo.pricePerMint = args.pricePerMint;
         mintInfo.feePerMint = args.feePerMint;
@@ -211,7 +208,7 @@ contract NFTMint is Ownable {
             bool mintProceedsSuccess = true;
             if (mintInfo.pricePerMint > 0) {
                 (mintProceedsSuccess,) =
-                    mintInfo.owner.call{ value: mintInfo.pricePerMint * modifiedAmount, gas: 100_000 }("");
+                    mint.owner().call{ value: mintInfo.pricePerMint * modifiedAmount, gas: 100_000 }("");
             }
             bool refundSuccess = true;
             if (msg.value > totalCost) {
