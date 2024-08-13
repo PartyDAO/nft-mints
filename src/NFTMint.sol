@@ -296,7 +296,7 @@ contract NFTMint is Ownable {
         }
 
         nextOrderIdToFill = uint96(nextOrderIdToFill_);
-        _nextNonce = uint96(nonce++);
+        _nextNonce = uint96(nonce);
     }
 
     function VERSION() external pure returns (string memory) {
