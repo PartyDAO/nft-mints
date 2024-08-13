@@ -36,6 +36,11 @@
           "deployedArgs": "0x00000000000000000000000085065829b9914ea8f456911e0f6d2f9d9a1705ed00000000000000000000000085065829b9914ea8f456911e0f6d2f9d9a1705ed",
           "version": "0.1.6",
           "address": "0x80045B318a27CE477E9faa7f34Efcf853dbCdFFC"
+        },
+        {
+          "deployedArgs": "0x00000000000000000000000085065829b9914ea8f456911e0f6d2f9d9a1705ed00000000000000000000000085065829b9914ea8f456911e0f6d2f9d9a1705ed",
+          "version": "1.0.0",
+          "address": "0x546C35Aa1A9F13f2fc5A11E5045E899C361cf668"
         }
       ],
       "constructorArgs": ["PartyDAO", "partydaoMultisig"]
