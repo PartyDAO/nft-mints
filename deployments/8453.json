@@ -1,6 +1,15 @@
 {
   "contracts": {
-    "NFTMint": { "deploys": [], "constructorArgs": ["partyDaoRelayer", "partyDaoMultisig"] }
+    "NFTMint": {
+      "deploys": [
+        {
+          "deployedArgs": "0x00000000000000000000000085065829b9914ea8f456911e0f6d2f9d9a1705ed000000000000000000000000f498fd75ee8d35294952343f1a77cae5ea5af6aa",
+          "version": "1.0.0",
+          "address": "0x2422c8A8F7da90231E96e6c5f4cC763644d8347C"
+        }
+      ],
+      "constructorArgs": ["partyDaoRelayer", "partyDaoMultisig"]
+    }
   },
   "constants": {
     "partyDaoRelayer": "0x85065829b9914ea8f456911e0f6d2f9d9a1705ed",
