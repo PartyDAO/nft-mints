@@ -1,0 +1,9 @@
+{
+  "contracts": {
+    "NFTMint": { "deploys": [], "constructorArgs": ["partyDaoRelayer", "partyDaoMultisig"] }
+  },
+  "constants": {
+    "partyDaoRelayer": "0x85065829b9914ea8f456911e0f6d2f9d9a1705ed",
+    "partyDaoMultisig": "0xF498fd75Ee8D35294952343f1A77CAE5EA5aF6AA"
+  }
+}
