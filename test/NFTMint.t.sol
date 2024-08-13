@@ -5,7 +5,7 @@ import { TestBase } from "./util/TestBase.t.sol";
 import { NFTMint } from "src/NFTMint.sol";
 import { MintERC1155 } from "src/MintERC1155.sol";
 import { Vm } from "forge-std/src/Test.sol";
-import { MockFailingRecipient } from "./util/MockFailingRecipient.sol";
+import { MockFailingRecipient } from "./mock/MockFailingRecipient.t.sol";
 
 contract NFTMintTest is TestBase {
     NFTMint nftMint;
@@ -272,7 +272,34 @@ contract NFTMintTest is TestBase {
     function test_order_buyerCantReceiveERC1155() external {
         MintERC1155 mint = test_createMint();
 
+        MockFailingRecipient minter = new MockFailingRecipient();
+        vm.deal(address(minter), 10 ether);
+        minter.setReceiveERC1155(false);
+
         vm.expectRevert(NFTMint.NFTMint_BuyerNotAcceptingERC1155.selector);
+        vm.prank(address(minter));
+        nftMint.order{ value: 0.011 ether }(mint, 1, "", new bytes32[](0));
+    }
+
+    function test_order_buyerCantReceiveBatchERC1155() external {
+        MintERC1155 mint = test_createMint();
+
+        MockFailingRecipient minter = new MockFailingRecipient();
+        vm.deal(address(minter), 10 ether);
+        minter.setReceiveERC1155Batch(false);
+
+        vm.expectRevert(NFTMint.NFTMint_BuyerNotAcceptingERC1155.selector);
+        vm.prank(address(minter));
+        nftMint.order{ value: 0.011 ether }(mint, 1, "", new bytes32[](0));
+    }
+
+    function test_order_buyerCanReceiveERC1155() external {
+        MintERC1155 mint = test_createMint();
+
+        MockFailingRecipient minter = new MockFailingRecipient();
+        vm.deal(address(minter), 10 ether);
+
+        vm.prank(address(minter));
         nftMint.order{ value: 0.011 ether }(mint, 1, "", new bytes32[](0));
     }
 
@@ -382,6 +409,7 @@ contract NFTMintTest is TestBase {
 
         vm.expectRevert(NFTMint.NFTMint_FailedToTransferFunds.selector);
         vm.prank(minter);
+        // Transfer excess to trigger refund
         nftMint.order{ value: 0.012 ether }(mint, 1, "", new bytes32[](0));
     }
 
