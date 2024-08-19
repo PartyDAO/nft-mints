@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.0;
 
-import { ERC1155Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
+import {
+    ERC1155SupplyUpgradeable,
+    ERC1155Upgradeable
+} from "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import { IERC1155Receiver } from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { ERC2981Upgradeable } from "@openzeppelin/contracts-upgradeable/token/common/ERC2981Upgradeable.sol";
 import { LibString } from "solady/src/utils/LibString.sol";
 
 /// @custom:security-contact security@partydao.org
-contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeable {
+contract MintERC1155 is ERC1155SupplyUpgradeable, OwnableUpgradeable, ERC2981Upgradeable {
     error MintERC1155_Unauthorized();
     error MintERC1155_TotalPercentChanceNot100();
     error MintERC1155_PercentChance0();
@@ -250,6 +253,6 @@ contract MintERC1155 is ERC1155Upgradeable, OwnableUpgradeable, ERC2981Upgradeab
     }
 
     function VERSION() external pure returns (string memory) {
-        return "1.0.0";
+        return "1.1.0";
     }
 }
