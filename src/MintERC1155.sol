@@ -221,7 +221,7 @@ contract MintERC1155 is ERC1155SupplyUpgradeable, OwnableUpgradeable, ERC2981Upg
         if (to.code.length == 0) return true;
 
         (bool success, bytes memory res) = to.staticcall{ gas: 400_000 }(
-            abi.encodeCall(IERC1155Receiver.onERC1155Received, (MINTER, address(0), 1, 1, ""))
+            abi.encodeCall(IERC1155Receiver.onERC1155Received, (MINTER, address(0), 0, 1, ""))
         );
         if (success) {
             bytes4 response = abi.decode(res, (bytes4));
@@ -232,13 +232,13 @@ contract MintERC1155 is ERC1155SupplyUpgradeable, OwnableUpgradeable, ERC2981Upg
             return false;
         }
 
-        uint256[] memory idOrAmountArray = new uint256[](1);
-        idOrAmountArray[0] = 1;
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = 0;
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = 1;
 
         (success, res) = to.staticcall{ gas: 400_000 }(
-            abi.encodeCall(
-                IERC1155Receiver.onERC1155BatchReceived, (MINTER, address(0), idOrAmountArray, idOrAmountArray, "")
-            )
+            abi.encodeCall(IERC1155Receiver.onERC1155BatchReceived, (MINTER, address(0), ids, amounts, ""))
         );
         if (success) {
             bytes4 response = abi.decode(res, (bytes4));
