@@ -59,7 +59,9 @@ contract MintERC1155Test is TestBase, LintJSON {
     function test_setContractInfo() external {
         vm.expectEmit(true, true, true, true);
         emit ContractURIUpdated();
-        token.setContractInfo("MyTestContract", "https://example.com/image.png", "New description", address(this), 100);
+        token.setContractInfo(
+            "MyTestContract", "https://example.com/image.png", "New description", "the banner", address(this), 100
+        );
 
         assertEq(token.name(), "MyTestContract");
         assertEq(token.imageURI(), "https://example.com/image.png");
