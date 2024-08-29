@@ -171,9 +171,7 @@ contract MintERC1155 is ERC1155SupplyUpgradeable, OwnableUpgradeable, ERC2981Upg
         return json;
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    )
+    function supportsInterface(bytes4 interfaceId)
         public
         view
         virtual
