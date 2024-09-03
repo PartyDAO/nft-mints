@@ -257,6 +257,6 @@ contract MintERC1155 is ERC1155SupplyUpgradeable, OwnableUpgradeable, ERC2981Upg
     }
 
     function VERSION() external pure returns (string memory) {
-        return "1.1.0";
+        return "1.2.0";
     }
 }
