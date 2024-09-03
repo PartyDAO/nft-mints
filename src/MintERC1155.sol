@@ -50,6 +50,8 @@ contract MintERC1155 is ERC1155SupplyUpgradeable, OwnableUpgradeable, ERC2981Upg
     string public imageURI;
     /// @notice Contract level description for `contractURI`
     string public description;
+    ///@notice Contract level banner for `contractURI`
+    string public bannerURI;
 
     constructor(address minter) {
         _disableInitializers();
@@ -169,9 +171,7 @@ contract MintERC1155 is ERC1155SupplyUpgradeable, OwnableUpgradeable, ERC2981Upg
         return json;
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    )
+    function supportsInterface(bytes4 interfaceId)
         public
         view
         virtual
@@ -185,6 +185,7 @@ contract MintERC1155 is ERC1155SupplyUpgradeable, OwnableUpgradeable, ERC2981Upg
         string memory name_,
         string memory imageURI_,
         string memory description_,
+        string memory bannerURI_,
         address royaltyReceiver,
         uint16 royaltyAmountBps
     )
@@ -195,6 +196,7 @@ contract MintERC1155 is ERC1155SupplyUpgradeable, OwnableUpgradeable, ERC2981Upg
         name = name_;
         imageURI = imageURI_;
         description = description_;
+        bannerURI = bannerURI_;
 
         emit ContractURIUpdated();
     }
@@ -207,6 +209,8 @@ contract MintERC1155 is ERC1155SupplyUpgradeable, OwnableUpgradeable, ERC2981Upg
             LibString.escapeJSON(imageURI),
             '","description":"',
             LibString.escapeJSON(description),
+            '","banner_image":"',
+            LibString.escapeJSON(bannerURI),
             '"}'
         );
 
@@ -253,6 +257,6 @@ contract MintERC1155 is ERC1155SupplyUpgradeable, OwnableUpgradeable, ERC2981Upg
     }
 
     function VERSION() external pure returns (string memory) {
-        return "1.1.0";
+        return "1.2.0";
     }
 }
