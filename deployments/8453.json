@@ -11,6 +11,11 @@
           "deployedArgs": "0x00000000000000000000000085065829b9914ea8f456911e0f6d2f9d9a1705ed000000000000000000000000f498fd75ee8d35294952343f1a77cae5ea5af6aa",
           "version": "1.1.0",
           "address": "0xCe9611aaAa4E5eAf6297011F76623C7C7d89689f"
+        },
+        {
+          "deployedArgs": "0x00000000000000000000000085065829b9914ea8f456911e0f6d2f9d9a1705ed000000000000000000000000f498fd75ee8d35294952343f1a77cae5ea5af6aa",
+          "version": "1.2.0",
+          "address": "0xa0662FfB7764cF43f8A555f313479E6f18Cf9eEC"
         }
       ],
       "constructorArgs": ["partyDaoRelayer", "partyDaoMultisig"]
